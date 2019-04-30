@@ -121,5 +121,5 @@ public interface BaseMapper<T> {
 	 * @param ids 主键
 	 */
 	@SelectProvider(type = SqlProvider.class, method = "listByIds")
-	List<T> listByIds(Iterable<Serializable> ids);
+	List<T> listByIds(@Param("ids") Iterable<Serializable> ids);
 }

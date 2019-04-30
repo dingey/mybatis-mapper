@@ -1,5 +1,6 @@
 package com.github.dingey.mybatis.mapper;
 
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.builder.annotation.ProviderContext;
 
 import javax.persistence.Id;
@@ -353,7 +354,7 @@ public class SqlProvider {
 	 * @param ids 主键
 	 * @return SQL
 	 */
-	public static String listByIds(Iterable<Serializable> ids, ProviderContext context) {
+	public static String listByIds(@Param("ids") Iterable<Serializable> ids, ProviderContext context) {
 		StringBuilder s = new StringBuilder();
 		Class<?> entity = MapperMethod.entity(context);
 		s.append(Const.SELECT_FROM).append(JPA.table(entity)).append(Const.WHERE);
