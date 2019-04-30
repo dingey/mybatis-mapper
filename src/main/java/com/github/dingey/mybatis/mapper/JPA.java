@@ -5,7 +5,6 @@ import javax.persistence.Table;
 import javax.persistence.Transient;
 import java.lang.reflect.Field;
 
-@SuppressWarnings("unused")
 class JPA {
     private JPA() {
     }

@@ -1,6 +1,5 @@
 package com.github.dingey.mybatis.mapper;
 
-@SuppressWarnings("unused")
 class StringUtil {
     private StringUtil() {
     }
