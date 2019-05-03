@@ -21,6 +21,10 @@ class JPA {
         return table(bean.getClass());
     }
 
+    static String column(Field field) {
+        return field.isAnnotationPresent(Column.class) ? field.getAnnotation(Column.class).name() : StringUtil.snakeCase(field.getName());
+    }
+
     static boolean insertable(Field field) {
         return !(field.isAnnotationPresent(Transient.class) || (field.isAnnotationPresent(Column.class) && !field.getAnnotation(Column.class).insertable())) || !field.isAnnotationPresent(Column.class);
     }
