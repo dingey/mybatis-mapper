@@ -101,7 +101,7 @@ public interface BaseMapper<T> {
 	 * @return 总数
 	 */
 	@SelectProvider(type = SqlProvider.class, method = "count")
-	Integer count(T t);
+	int count(T t);
 
 	/**
 	 * 查询所有
