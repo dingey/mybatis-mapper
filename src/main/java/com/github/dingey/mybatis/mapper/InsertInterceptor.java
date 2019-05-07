@@ -34,7 +34,8 @@ public class InsertInterceptor implements Interceptor {
 
     private boolean isSequence(Invocation invocation) {
         return SqlCommandType.INSERT.equals(((MappedStatement) invocation.getArgs()[0]).getSqlCommandType())
-                && (invocation.getArgs()[1]).getClass().isAnnotationPresent(SequenceGenerator.class);
+                && ((invocation.getArgs()[1]).getClass().isAnnotationPresent(SequenceGenerator.class)
+                || SqlProvider.id((invocation.getArgs()[1]).getClass()).isAnnotationPresent(SequenceGenerator.class));
     }
 
     private void generateId(Object parameter, Executor executor) throws Throwable {
@@ -42,6 +43,9 @@ public class InsertInterceptor implements Interceptor {
         String seq;
         if (!SEQUENCE.containsKey(parameter.getClass())) {
             SequenceGenerator sequenceGenerator = parameter.getClass().getAnnotation(SequenceGenerator.class);
+            if (sequenceGenerator == null) {
+                sequenceGenerator = SqlProvider.id(parameter.getClass()).getAnnotation(SequenceGenerator.class);
+            }
             seq = String.format("select %s.nextval from dual", sequenceGenerator.sequenceName().isEmpty() ? sequenceGenerator.name() : sequenceGenerator.sequenceName());
             SEQUENCE.put(parameter.getClass(), seq);
         } else {
