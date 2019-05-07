@@ -12,6 +12,7 @@ import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Properties;
 
@@ -61,16 +62,19 @@ public class InsertInterceptor implements Interceptor {
             }
             idField.set(parameter, id);
         }
-        close(resultSet);
+        close(resultSet, preparedStatement);
         if (log.isDebugEnabled()) {
             log.debug("==>  Preparing: " + seq);
             log.debug(" <==      Return: " + id);
         }
     }
 
-    private void close(ResultSet resultSet) throws SQLException {
+    private void close(ResultSet resultSet, Statement statement) throws SQLException {
         if (resultSet != null) {
             resultSet.close();
+        }
+        if (statement != null) {
+            statement.close();
         }
     }
 
