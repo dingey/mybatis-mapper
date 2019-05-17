@@ -24,6 +24,16 @@ public class InsertInterceptor implements Interceptor {
     private static final Log log = LogFactory.getLog(InsertInterceptor.class);
     private static final HashMap<Class<?>, String> SEQUENCE = new HashMap<>();
 
+    public InsertInterceptor() {
+    }
+
+    public InsertInterceptor(MapperProperties properties) {
+        Const.camelCase = properties.isCamelCase();
+        Const.columnUpper = properties.isColumnUpper();
+        Const.tablePrefix = properties.getTablePrefix();
+        Const.tableUpper = properties.isTableUpper();
+    }
+
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
         if (isSequence(invocation)) {

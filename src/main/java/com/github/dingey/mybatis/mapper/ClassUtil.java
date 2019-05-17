@@ -9,6 +9,19 @@ class ClassUtil {
     private ClassUtil() {
     }
 
+    static Field getDeclaredField(Class<?> t, String name) {
+        for (Class<?> clazz = t; clazz != Object.class && clazz != Class.class && clazz != Field.class; clazz = clazz.getSuperclass()) {
+            try {
+                Field field = clazz.getDeclaredField(name);
+                if (field != null) {
+                    return field;
+                }
+            } catch (NoSuchFieldException ignore) {
+            }
+        }
+        throw new MapperException("类" + t.getName() + "找不到属性" + name);
+    }
+
     static List<Field> getDeclaredFields(Class<?> t) {
         List<Field> fields = new ArrayList<>();
         for (Class<?> clazz = t; clazz != Object.class && clazz != Class.class && clazz != Field.class; clazz = clazz.getSuperclass()) {
@@ -19,7 +32,7 @@ class ClassUtil {
                         fields.add(f);
                     }
                 }
-            } catch (Exception e) {
+            } catch (Exception ignore) {
             }
         }
         return fields;

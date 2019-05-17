@@ -55,19 +55,19 @@ public class SqlProvider {
         StringBuilder sql = new StringBuilder();
         List<String> props = new ArrayList<>();
         List<String> columns = new ArrayList<>();
-        sql.append("insert into ").append(JPA.table(bean)).append("(");
+        sql.append("insert into ").append(Jpa.table(bean)).append("(");
         try {
             for (Field field : getCachedModelFields(bean.getClass())) {
                 if (selective) {
                     Object value = field.get(bean);
-                    if (value == null) {
+                    if (value == null && !Jpa.isSequenceId(field)) {
                         continue;
                     }
                 }
-                if (!JPA.insertable(field)) {
+                if (!Jpa.insertable(field)) {
                     continue;
                 }
-                columns.add(JPA.column(field));
+                columns.add(Jpa.column(field));
                 props.add("#{" + field.getName() + "}");
             }
         } catch (Exception e) {
@@ -119,7 +119,7 @@ public class SqlProvider {
      */
     public static String getUpdateSql(Object bean, boolean selective) {
         StringBuilder sql = new StringBuilder();
-        sql.append("update ").append(JPA.table(bean)).append(" set ");
+        sql.append("update ").append(Jpa.table(bean)).append(" set ");
         Field id = null;
         Field version = null;
         try {
@@ -135,22 +135,22 @@ public class SqlProvider {
                     continue;
                 } else if (field.isAnnotationPresent(Version.class)) {
                     version = field;
-                    String column = JPA.column(field);
+                    String column = Jpa.column(field);
                     sql.append(column).append("=").append(column).append("+1,");
                     continue;
-                } else if (!JPA.updatable(field)) {
+                } else if (!Jpa.updatable(field)) {
                     continue;
                 }
-                sql.append(JPA.column(field)).append("=#{").append(field.getName()).append("},");
+                sql.append(Jpa.column(field)).append("=#{").append(field.getName()).append("},");
             }
         } catch (Exception e) {
             throw new MapperException(sql.toString(), e);
         }
         sql.deleteCharAt(sql.length() - 1);
         sql.append(Const.WHERE);
-        sql.append(JPA.column(id)).append(" =#{").append(id.getName()).append(Const.AND1);
+        sql.append(Jpa.column(id)).append(" =#{").append(id.getName()).append(Const.AND1);
         if (version != null) {
-            sql.append(Const.AND).append(JPA.column(version)).append("=#{").append(version.getName()).append("} and");
+            sql.append(Const.AND).append(Jpa.column(version)).append("=#{").append(version.getName()).append("} and");
         }
         return sql.delete(sql.length() - 4, sql.length()).toString();
     }
@@ -164,7 +164,7 @@ public class SqlProvider {
     public static String delete(Object bean) {
         return cachedSql(bean, "delete", t -> {
             StringBuilder sql = new StringBuilder();
-            sql.append("delete from ").append(JPA.table(bean)).append(Const.WHERE);
+            sql.append("delete from ").append(Jpa.table(bean)).append(Const.WHERE);
             Field id = null;
             try {
                 for (Field field : getCachedModelFields(bean.getClass())) {
@@ -178,7 +178,7 @@ public class SqlProvider {
             if (id == null) {
                 throw new MapperException("id未声明" + bean.getClass().getName());
             } else {
-                sql.append(JPA.column(id)).append("=#{").append(id).append(Const.AND1);
+                sql.append(Jpa.column(id)).append("=#{").append(id).append(Const.AND1);
             }
             return sql.delete(sql.length() - 5, sql.length()).toString();
         });
@@ -194,7 +194,7 @@ public class SqlProvider {
         Class<?> entity = MapperMethod.entity(context);
         return getCachedSql(entity, "deleteMark", t -> {
             StringBuilder sql = new StringBuilder();
-            sql.append("update ").append(JPA.table(entity)).append(" set ");
+            sql.append("update ").append(Jpa.table(entity)).append(" set ");
             Field delete = null;
             Field version = null;
             Field id = null;
@@ -213,13 +213,13 @@ public class SqlProvider {
             } catch (Exception e) {
                 throw new MapperException(sql.toString(), e);
             }
-            sql.append(JPA.column(delete)).append("=").append(mark.value()).append(" where ");
+            sql.append(Jpa.column(delete)).append("=").append(mark.value()).append(" where ");
             if (id == null) {
                 throw new MapperException("主键必须声明");
             } else {
-                sql.append(JPA.column(id)).append("=#{").append(id.getName()).append(Const.AND1);
+                sql.append(Jpa.column(id)).append("=#{").append(id.getName()).append(Const.AND1);
                 if (version != null) {
-                    sql.append(JPA.column(version)).append("=#{").append(version.getName()).append(Const.AND1);
+                    sql.append(Jpa.column(version)).append("=#{").append(version.getName()).append(Const.AND1);
                 }
             }
             return sql.delete(sql.length() - 5, sql.length()).toString();
@@ -235,11 +235,11 @@ public class SqlProvider {
     public static String get(Object bean) {
         return cachedSql(bean, "get", t -> {
             StringBuilder sql = new StringBuilder();
-            sql.append(Const.SELECT_FROM).append(JPA.table(bean)).append(Const.WHERE);
+            sql.append(Const.SELECT_FROM).append(Jpa.table(bean)).append(Const.WHERE);
             try {
                 for (Field f : getCachedModelFields(bean.getClass())) {
                     if (f.isAnnotationPresent(Id.class)) {
-                        sql.append(JPA.column(f)).append("=#{").append(f.getName()).append("} and");
+                        sql.append(Jpa.column(f)).append("=#{").append(f.getName()).append("} and");
                     }
                 }
                 sql.delete(sql.toString().length() - 3, sql.toString().length());
@@ -260,11 +260,11 @@ public class SqlProvider {
         Class<?> entity = MapperMethod.entity(context);
         return getCachedSql(entity, "getById", t -> {
             StringBuilder sql = new StringBuilder();
-            sql.append(Const.SELECT_FROM).append(JPA.table(entity)).append(Const.WHERE);
+            sql.append(Const.SELECT_FROM).append(Jpa.table(entity)).append(Const.WHERE);
             try {
                 for (Field field : getCachedModelFields(entity)) {
                     if (field.isAnnotationPresent(Id.class)) {
-                        sql.append(JPA.column(field)).append("=#{param1}");
+                        sql.append(Jpa.column(field)).append("=#{param1}");
                         break;
                     }
                 }
@@ -283,7 +283,7 @@ public class SqlProvider {
      */
     public static String list(Object bean) {
         StringBuilder sql = new StringBuilder();
-        sql.append(Const.SELECT_FROM).append(JPA.table(bean)).append(" where 1=1 ");
+        sql.append(Const.SELECT_FROM).append(Jpa.table(bean)).append(" where 1=1 ");
         String orderby = null;
         try {
             for (Field f : getCachedModelFields(bean.getClass())) {
@@ -291,7 +291,7 @@ public class SqlProvider {
                     if (f.isAnnotationPresent(OrderBy.class)) {
                         orderby = String.valueOf(f.get(bean));
                     } else {
-                        sql.append(Const.AND).append(JPA.column(f)).append("=#{").append(f.getName()).append("}");
+                        sql.append(Const.AND).append(Jpa.column(f)).append("=#{").append(f.getName()).append("}");
                     }
                 }
             }
@@ -316,11 +316,11 @@ public class SqlProvider {
      */
     public static String count(Object bean) {
         StringBuilder sql = new StringBuilder();
-        sql.append("select count(0) from ").append(JPA.table(bean)).append(" where 1=1 ");
+        sql.append("select count(0) from ").append(Jpa.table(bean)).append(" where 1=1 ");
         try {
             for (Field f : getCachedModelFields(bean.getClass())) {
                 if (f.get(bean) != null && !f.isAnnotationPresent(Transient.class)) {
-                    sql.append(Const.AND).append(JPA.column(f)).append("=#{").append(f.getName()).append("}");
+                    sql.append(Const.AND).append(Jpa.column(f)).append("=#{").append(f.getName()).append("}");
                 }
             }
         } catch (Exception e) {
@@ -337,7 +337,7 @@ public class SqlProvider {
      */
     public static String listAll(ProviderContext context) {
         Class<?> entity = MapperMethod.entity(context);
-        return getCachedSql(entity, "listAll", t -> Const.SELECT_FROM + JPA.table(entity));
+        return getCachedSql(entity, "listAll", t -> Const.SELECT_FROM + Jpa.table(entity));
     }
 
     /**
@@ -348,7 +348,7 @@ public class SqlProvider {
      */
     public static String countAll(ProviderContext context) {
         Class<?> entity = MapperMethod.entity(context);
-        return getCachedSql(entity, "countAll", t -> "select count(0) from " + JPA.table(entity));
+        return getCachedSql(entity, "countAll", t -> "select count(0) from " + Jpa.table(entity));
     }
 
     /**
@@ -360,8 +360,8 @@ public class SqlProvider {
     public static String listByIds(@Param("ids") Iterable<Serializable> ids, ProviderContext context) {
         StringBuilder s = new StringBuilder();
         Class<?> entity = MapperMethod.entity(context);
-        s.append(Const.SELECT_FROM).append(JPA.table(entity)).append(Const.WHERE);
-        s.append(JPA.column(id(entity))).append(" in ( ");
+        s.append(Const.SELECT_FROM).append(Jpa.table(entity)).append(Const.WHERE);
+        s.append(Jpa.column(id(entity))).append(" in ( ");
         for (Serializable id : ids) {
             s.append("'").append(id).append("',");
         }
