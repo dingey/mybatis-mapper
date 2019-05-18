@@ -8,6 +8,8 @@ import javax.persistence.Transient;
 import javax.persistence.Version;
 import java.io.Serializable;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -20,6 +22,7 @@ public class SqlProvider {
     private static final HashMap<String, String> sqls = new HashMap<>();
     private static final HashMap<String, List<Field>> modelFieldsMap = new HashMap<>();
     private static final HashMap<Class<?>, Field> idFieldsMap = new HashMap<>();
+    private static final HashMap<Field, Method> READ_METHOD = new HashMap<>();
 
     private SqlProvider() {
     }
@@ -31,7 +34,11 @@ public class SqlProvider {
      * @return SQL
      */
     public static String insert(Object bean) {
-        return cachedSql(bean, "insert", t -> getInsertSql(bean, false));
+        if (Jpa.elClass(bean)) {
+            return getInsertSql(bean, false);
+        } else {
+            return cachedSql(bean, "insert", t -> getInsertSql(bean, false));
+        }
     }
 
     /**
@@ -59,7 +66,7 @@ public class SqlProvider {
         try {
             for (Field field : getCachedModelFields(bean.getClass())) {
                 if (selective) {
-                    Object value = field.get(bean);
+                    Object value = readValue(field, bean);
                     if (value == null && !Jpa.isSequenceId(field)) {
                         continue;
                     }
@@ -97,7 +104,11 @@ public class SqlProvider {
      * @return SQL
      */
     public static String update(Object bean) {
-        return cachedSql(bean, "update", t -> getUpdateSql(bean, false));
+        if (Jpa.elClass(bean)) {
+            return getUpdateSql(bean, false);
+        } else {
+            return cachedSql(bean, "update", t -> getUpdateSql(bean, false));
+        }
     }
 
     /**
@@ -125,7 +136,7 @@ public class SqlProvider {
         try {
             for (Field field : getCachedModelFields(bean.getClass())) {
                 if (selective) {
-                    Object value = field.get(bean);
+                    Object value = readValue(field, bean);
                     if (value == null) {
                         continue;
                     }
@@ -162,26 +173,32 @@ public class SqlProvider {
      * @return SQL
      */
     public static String delete(Object bean) {
-        return cachedSql(bean, "delete", t -> {
-            StringBuilder sql = new StringBuilder();
-            sql.append("delete from ").append(Jpa.table(bean)).append(Const.WHERE);
-            Field id = null;
-            try {
-                for (Field field : getCachedModelFields(bean.getClass())) {
-                    if (field.isAnnotationPresent(Id.class)) {
-                        id = field;
-                    }
+        if (Jpa.elClass(bean)) {
+            return getDeleteSql(bean);
+        } else {
+            return cachedSql(bean, "delete", t -> getDeleteSql(bean));
+        }
+    }
+
+    private static String getDeleteSql(Object bean) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("delete from ").append(Jpa.table(bean)).append(Const.WHERE);
+        Field id = null;
+        try {
+            for (Field field : getCachedModelFields(bean.getClass())) {
+                if (field.isAnnotationPresent(Id.class)) {
+                    id = field;
                 }
-            } catch (Exception e) {
-                throw new MapperException(sql.toString(), e);
             }
-            if (id == null) {
-                throw new MapperException("id未声明" + bean.getClass().getName());
-            } else {
-                sql.append(Jpa.column(id)).append("=#{").append(id).append(Const.AND1);
-            }
-            return sql.delete(sql.length() - 5, sql.length()).toString();
-        });
+        } catch (Exception e) {
+            throw new MapperException(sql.toString(), e);
+        }
+        if (id == null) {
+            throw new MapperException("id未声明" + bean.getClass().getName());
+        } else {
+            sql.append(Jpa.column(id)).append("=#{").append(id).append(Const.AND1);
+        }
+        return sql.delete(sql.length() - 5, sql.length()).toString();
     }
 
     /**
@@ -192,38 +209,90 @@ public class SqlProvider {
      */
     public static String deleteMark(ProviderContext context) {
         Class<?> entity = MapperMethod.entity(context);
-        return getCachedSql(entity, "deleteMark", t -> {
-            StringBuilder sql = new StringBuilder();
-            sql.append("update ").append(Jpa.table(entity)).append(" set ");
-            Field delete = null;
-            Field version = null;
-            Field id = null;
-            DeleteMark mark = null;
-            try {
-                for (Field field : getCachedModelFields(entity)) {
-                    if (field.isAnnotationPresent(DeleteMark.class)) {
-                        delete = field;
-                        mark = field.getAnnotation(DeleteMark.class);
-                    } else if (field.isAnnotationPresent(Id.class)) {
-                        id = field;
-                    } else if (field.isAnnotationPresent(Version.class)) {
-                        version = field;
-                    }
+        if (Jpa.elClass(entity)) {
+            throw new MapperException("deleteMark不支持的方式" + entity.getName());
+        }
+        return getCachedSql(entity, "deleteMark", t -> getDeleteMarkSql(entity));
+    }
+
+    /**
+     * 获取deleteSQL,支持表名变量
+     *
+     * @param context context
+     * @return SQL
+     */
+    public static String deleteMarked(Object bean) {
+        if (Jpa.elClass(bean)) {
+            return getDeleteMarkSql(bean);
+        } else {
+            return getCachedSql(bean.getClass(), "deleteMarked", t -> getDeleteMarkSql(bean));
+        }
+    }
+
+    private static String getDeleteMarkSql(Class<?> entity) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("update ").append(Jpa.table(entity)).append(" set ");
+        Field delete = null;
+        Field version = null;
+        Field id = null;
+        DeleteMark mark = null;
+        try {
+            for (Field field : getCachedModelFields(entity)) {
+                if (field.isAnnotationPresent(DeleteMark.class)) {
+                    delete = field;
+                    mark = field.getAnnotation(DeleteMark.class);
+                } else if (field.isAnnotationPresent(Id.class)) {
+                    id = field;
+                } else if (field.isAnnotationPresent(Version.class)) {
+                    version = field;
                 }
-            } catch (Exception e) {
-                throw new MapperException(sql.toString(), e);
             }
-            sql.append(Jpa.column(delete)).append("=").append(mark.value()).append(" where ");
-            if (id == null) {
-                throw new MapperException("主键必须声明");
-            } else {
-                sql.append(Jpa.column(id)).append("=#{").append(id.getName()).append(Const.AND1);
-                if (version != null) {
-                    sql.append(Jpa.column(version)).append("=#{").append(version.getName()).append(Const.AND1);
+        } catch (Exception e) {
+            throw new MapperException(sql.toString(), e);
+        }
+        sql.append(Jpa.column(delete)).append("=").append(mark.value()).append(" where ");
+        if (id == null) {
+            throw new MapperException("主键必须声明");
+        } else {
+            sql.append(Jpa.column(id)).append("=#{").append(id.getName()).append(Const.AND1);
+            if (version != null) {
+                sql.append(Jpa.column(version)).append("=#{").append(version.getName()).append(Const.AND1);
+            }
+        }
+        return sql.delete(sql.length() - 5, sql.length()).toString();
+    }
+
+    private static String getDeleteMarkSql(Object entity) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("update ").append(Jpa.table(entity)).append(" set ");
+        Field delete = null;
+        Field version = null;
+        Field id = null;
+        DeleteMark mark = null;
+        try {
+            for (Field field : getCachedModelFields(entity.getClass())) {
+                if (field.isAnnotationPresent(DeleteMark.class)) {
+                    delete = field;
+                    mark = field.getAnnotation(DeleteMark.class);
+                } else if (field.isAnnotationPresent(Id.class)) {
+                    id = field;
+                } else if (field.isAnnotationPresent(Version.class)) {
+                    version = field;
                 }
             }
-            return sql.delete(sql.length() - 5, sql.length()).toString();
-        });
+        } catch (Exception e) {
+            throw new MapperException(sql.toString(), e);
+        }
+        sql.append(Jpa.column(delete)).append("=").append(mark.value()).append(" where ");
+        if (id == null) {
+            throw new MapperException("主键必须声明");
+        } else {
+            sql.append(Jpa.column(id)).append("=#{").append(id.getName()).append(Const.AND1);
+            if (version != null) {
+                sql.append(Jpa.column(version)).append("=#{").append(version.getName()).append(Const.AND1);
+            }
+        }
+        return sql.delete(sql.length() - 5, sql.length()).toString();
     }
 
     /**
@@ -233,21 +302,23 @@ public class SqlProvider {
      * @return SQL
      */
     public static String get(Object bean) {
-        return cachedSql(bean, "get", t -> {
-            StringBuilder sql = new StringBuilder();
-            sql.append(Const.SELECT_FROM).append(Jpa.table(bean)).append(Const.WHERE);
-            try {
-                for (Field f : getCachedModelFields(bean.getClass())) {
-                    if (f.isAnnotationPresent(Id.class)) {
-                        sql.append(Jpa.column(f)).append("=#{").append(f.getName()).append("} and");
-                    }
-                }
-                sql.delete(sql.toString().length() - 3, sql.toString().length());
-            } catch (Exception e) {
-                throw new MapperException(sql.toString(), e);
-            }
-            return sql.toString();
-        });
+        if (Jpa.elClass(bean)) {
+            return getGetSql(bean);
+        } else {
+            return cachedSql(bean, "get", t -> getGetSql(bean));
+        }
+    }
+
+    private static String getGetSql(Object bean) {
+        StringBuilder sql = new StringBuilder();
+        sql.append(Const.SELECT_FROM).append(Jpa.table(bean)).append(Const.WHERE);
+        try {
+            Field id = id(bean.getClass());
+            sql.append(Jpa.column(id)).append("=#{").append(id.getName()).append("}");
+        } catch (Exception e) {
+            throw new MapperException(sql.toString(), e);
+        }
+        return sql.toString();
     }
 
     /**
@@ -258,6 +329,9 @@ public class SqlProvider {
      */
     public static String getById(ProviderContext context) {
         Class<?> entity = MapperMethod.entity(context);
+        if (Jpa.elClass(entity)) {
+            throw new MapperException("getById方法不支持表名变量" + entity.getName());
+        }
         return getCachedSql(entity, "getById", t -> {
             StringBuilder sql = new StringBuilder();
             sql.append(Const.SELECT_FROM).append(Jpa.table(entity)).append(Const.WHERE);
@@ -287,9 +361,11 @@ public class SqlProvider {
         String orderby = null;
         try {
             for (Field f : getCachedModelFields(bean.getClass())) {
-                if (f.get(bean) != null && !f.isAnnotationPresent(Transient.class)) {
-                    if (f.isAnnotationPresent(OrderBy.class)) {
-                        orderby = String.valueOf(f.get(bean));
+                if (Jpa.selectable(f)) {
+                    Object v = readValue(f, bean);
+                    if (v == null) {
+                    } else if (f.isAnnotationPresent(OrderBy.class)) {
+                        orderby = String.valueOf(v);
                     } else {
                         sql.append(Const.AND).append(Jpa.column(f)).append("=#{").append(f.getName()).append("}");
                     }
@@ -319,7 +395,7 @@ public class SqlProvider {
         sql.append("select count(0) from ").append(Jpa.table(bean)).append(" where 1=1 ");
         try {
             for (Field f : getCachedModelFields(bean.getClass())) {
-                if (f.get(bean) != null && !f.isAnnotationPresent(Transient.class)) {
+                if (Jpa.selectable(f) && readValue(f, bean) != null) {
                     sql.append(Const.AND).append(Jpa.column(f)).append("=#{").append(f.getName()).append("}");
                 }
             }
@@ -337,6 +413,9 @@ public class SqlProvider {
      */
     public static String listAll(ProviderContext context) {
         Class<?> entity = MapperMethod.entity(context);
+        if (Jpa.elClass(entity)) {
+            throw new MapperException("listAll方法不支持表名变量" + entity.getName());
+        }
         return getCachedSql(entity, "listAll", t -> Const.SELECT_FROM + Jpa.table(entity));
     }
 
@@ -348,6 +427,9 @@ public class SqlProvider {
      */
     public static String countAll(ProviderContext context) {
         Class<?> entity = MapperMethod.entity(context);
+        if (Jpa.elClass(entity)) {
+            throw new MapperException("countAll方法不支持表名变量" + entity.getName());
+        }
         return getCachedSql(entity, "countAll", t -> "select count(0) from " + Jpa.table(entity));
     }
 
@@ -358,8 +440,11 @@ public class SqlProvider {
      * @return SQL
      */
     public static String listByIds(@Param("ids") Iterable<Serializable> ids, ProviderContext context) {
-        StringBuilder s = new StringBuilder();
         Class<?> entity = MapperMethod.entity(context);
+        if (Jpa.elClass(entity)) {
+            throw new MapperException("listByIds方法不支持表名变量" + entity.getName());
+        }
+        StringBuilder s = new StringBuilder();
         s.append(Const.SELECT_FROM).append(Jpa.table(entity)).append(Const.WHERE);
         s.append(Jpa.column(id(entity))).append(" in ( ");
         for (Serializable id : ids) {
@@ -407,13 +492,12 @@ public class SqlProvider {
      */
     private static String cachedSql(Object bean, String method, Func<Object> func) {
         String key = bean.getClass().getName() + "_" + method;
-        if (sqls.get(key) != null) {
-            return sqls.get(key);
-        } else {
-            String res = func.apply(bean);
-            sqls.put(key, res);
-            return res;
+        String sql = sqls.get(key);
+        if (sql == null) {
+            sql = func.apply(bean);
+            sqls.put(key, sql);
         }
+        return sql;
     }
 
     /**
@@ -449,6 +533,22 @@ public class SqlProvider {
             fields.forEach(f -> f.setAccessible(true));
             modelFieldsMap.put(beanClass.getName(), fields);
             return fields;
+        }
+    }
+
+    private static Object readValue(Field f, Object o) {
+        Method method = READ_METHOD.get(f);
+        if (method == null) {
+            method = ClassUtil.getReadMethod(f, o);
+            if (!method.isAccessible()) {
+                method.setAccessible(true);
+            }
+            READ_METHOD.put(f, method);
+        }
+        try {
+            return method.invoke(o);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            throw new MapperException("获取值失败" + e.getMessage(), e);
         }
     }
 }

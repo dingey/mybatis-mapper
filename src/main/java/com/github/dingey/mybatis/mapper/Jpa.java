@@ -10,6 +10,8 @@ class Jpa {
     private static final HashMap<Field, Boolean> SEQUENCE = new HashMap<>();
     private static final HashMap<Field, Boolean> INSERTABLE = new HashMap<>();
     private static final HashMap<Field, Boolean> UPDATEABLE = new HashMap<>();
+    private static final HashMap<Field, Boolean> SELECTABLE = new HashMap<>();
+    private static final HashMap<Class<?>, Boolean> EL_CLASS = new HashMap<>();
 
     private Jpa() {
     }
@@ -73,9 +75,26 @@ class Jpa {
         }
     }
 
+    static boolean elClass(Object bean) {
+        return elClass(bean.getClass());
+    }
+
+    static boolean elClass(Class<?> clazz) {
+        Boolean el = EL_CLASS.get(clazz);
+        if (el == null) {
+            el = clazz.isAnnotationPresent(Table.class) && clazz.getDeclaredAnnotation(Table.class).name().contains("$");
+            EL_CLASS.put(clazz, el);
+        }
+        return el;
+    }
+
     static String table(Object bean) {
         String table = table(bean.getClass());
-        return parseEL(table, bean);
+        if (elClass(bean)) {
+            return parseEL(table, bean);
+        } else {
+            return table;
+        }
     }
 
     static String column(Field f) {
@@ -126,5 +145,15 @@ class Jpa {
             UPDATEABLE.put(field, update);
         }
         return update;
+    }
+
+
+    static boolean selectable(Field field) {
+        Boolean select = SELECTABLE.get(field);
+        if (select == null) {
+            select = !field.isAnnotationPresent(Transient.class);
+            SELECTABLE.put(field, select);
+        }
+        return select;
     }
 }

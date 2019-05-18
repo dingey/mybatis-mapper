@@ -74,7 +74,7 @@ public interface BaseMapper<T> {
 	 * @return 影响的行数
 	 */
 	@SelectProvider(type = SqlProvider.class, method = "getById")
-	T get(Serializable id);
+	T getById(Serializable id);
 
 	/**
 	 * 查询一条记录
@@ -82,8 +82,8 @@ public interface BaseMapper<T> {
 	 * @param t 参数
 	 * @return 影响的行数
 	 */
-	//@SelectProvider(type = SqlProvider.class, method = "get")
-	//T get(T t);
+	@SelectProvider(type = SqlProvider.class, method = "get")
+	T get(T t);
 
 	/**
 	 * 查询列表
