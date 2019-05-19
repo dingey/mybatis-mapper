@@ -2,6 +2,8 @@ package com.github.dingey.mybatis.mapper;
 
 import javax.persistence.*;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 
 class Jpa {
@@ -17,10 +19,8 @@ class Jpa {
     }
 
     static String table(Class<?> bean) {
-        if (CLASS_NAME.containsKey(bean)) {
-            return CLASS_NAME.get(bean);
-        } else {
-            String name;
+        String name = CLASS_NAME.get(bean);
+        if (name == null) {
             if (bean.isAnnotationPresent(Table.class) && !bean.getAnnotation(Table.class).name().isEmpty()) {
                 name = bean.getAnnotation(Table.class).name();
             } else {
@@ -37,21 +37,20 @@ class Jpa {
                 }
             }
             CLASS_NAME.put(bean, name);
-            return name;
         }
+        return name;
     }
 
     static boolean isSequenceId(Field f) {
-        if (SEQUENCE.containsKey(f)) {
-            return SEQUENCE.get(f);
-        } else {
-            boolean b = f.isAnnotationPresent(SequenceGenerator.class) || f.getDeclaringClass().isAnnotationPresent(SequenceGenerator.class);
+        Boolean b = SEQUENCE.get(f);
+        if (b == null) {
+            b = f.isAnnotationPresent(SequenceGenerator.class) || f.getDeclaringClass().isAnnotationPresent(SequenceGenerator.class);
             SEQUENCE.put(f, b);
-            return b;
         }
+        return b;
     }
 
-    public static String parseEL(String sql, Object bean) {
+    static String parseEL(String sql, Object bean) {
         if (sql.contains(Const.EL)) {
             int beginIndex = sql.indexOf(Const.EL);
             int endIndex = sql.indexOf("}", beginIndex);
@@ -61,13 +60,14 @@ class Jpa {
                 if (!field.isAccessible()) {
                     field.setAccessible(true);
                 }
-                Object o = field.get(bean);
+                Method method = ClassUtil.getReadMethod(field, bean);
+                Object o = method.invoke(bean);
                 sql = sql.substring(0, beginIndex) + o + sql.substring(endIndex + 1);
                 if (sql.contains(Const.EL)) {
                     sql = parseEL(sql, bean);
                 }
                 return sql;
-            } catch (IllegalAccessException e) {
+            } catch (IllegalAccessException | InvocationTargetException e) {
                 throw new MapperException("获取" + n + "值失败" + e.getMessage());
             }
         } else {
