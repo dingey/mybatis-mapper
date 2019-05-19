@@ -218,7 +218,7 @@ public class SqlProvider {
     /**
      * 获取deleteSQL,支持表名变量
      *
-     * @param context context
+     * @param bean bean
      * @return SQL
      */
     public static String deleteMarked(Object bean) {
@@ -436,7 +436,8 @@ public class SqlProvider {
     /**
      * 获取selectSQL
      *
-     * @param ids 主键
+     * @param ids     主键
+     * @param context context
      * @return SQL
      */
     public static String listByIds(@Param("ids") Iterable<Serializable> ids, ProviderContext context) {
