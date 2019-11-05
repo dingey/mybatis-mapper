@@ -50,6 +50,9 @@ public class InsertInterceptor implements Interceptor {
 
     private void generateId(Object parameter, Executor executor) throws Throwable {
         Field idField = SqlProvider.id(parameter.getClass());
+        if (idField.get(parameter) != null) {
+            return;
+        }
         String seq;
         if (!SEQUENCE.containsKey(parameter.getClass())) {
             SequenceGenerator sequenceGenerator = parameter.getClass().getAnnotation(SequenceGenerator.class);

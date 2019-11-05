@@ -56,7 +56,7 @@ public interface BaseMapper<T> {
      * @param id 主键
      * @return 影响的行数
      */
-    @UpdateProvider(type = SqlProvider.class, method = "delete")
+    @UpdateProvider(type = SqlProvider.class, method = "deleteById")
     int delete(Serializable id);
 
     /**

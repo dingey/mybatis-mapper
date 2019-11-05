@@ -4,7 +4,6 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.builder.annotation.ProviderContext;
 
 import javax.persistence.Id;
-import javax.persistence.Transient;
 import javax.persistence.Version;
 import java.io.Serializable;
 import java.lang.reflect.Field;
@@ -349,6 +348,33 @@ public class SqlProvider {
         });
     }
 
+    /**
+     * 获取selectSQL
+     *
+     * @param context context
+     * @return SQL
+     */
+    public static String deleteById(ProviderContext context) {
+        Class<?> entity = MapperMethod.entity(context);
+        if (Jpa.elClass(entity)) {
+            throw new MapperException("deleteById方法不支持表名变量" + entity.getName());
+        }
+        return getCachedSql(entity, "deleteById", t -> {
+            StringBuilder sql = new StringBuilder();
+            sql.append("delete from ").append(Jpa.table(entity)).append(Const.WHERE);
+            try {
+                for (Field field : getCachedModelFields(entity)) {
+                    if (field.isAnnotationPresent(Id.class)) {
+                        sql.append(Jpa.column(field)).append("=#{param1}");
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                throw new MapperException(sql.toString(), e);
+            }
+            return sql.toString();
+        });
+    }
     /**
      * 获取selectSQL
      *
