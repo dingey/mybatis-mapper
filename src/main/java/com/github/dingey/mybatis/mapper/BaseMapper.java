@@ -72,7 +72,7 @@ public interface BaseMapper<T> {
      * 根据主键查询
      *
      * @param id 主键
-     * @return 影响的行数
+     * @return 一条记录
      */
     @SelectProvider(type = SqlProvider.class, method = "getById")
     T get(Serializable id);
@@ -124,6 +124,7 @@ public interface BaseMapper<T> {
      * 根据主键批量查询
      *
      * @param ids 主键
+     * @return 列表
      */
     @SelectProvider(type = SqlProvider.class, method = "listByIds")
     List<T> listByIds(@Param("ids") Iterable<Serializable> ids);
