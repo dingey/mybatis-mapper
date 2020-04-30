@@ -45,12 +45,13 @@ public class InsertInterceptor implements Interceptor {
     private boolean isSequence(Invocation invocation) {
         return SqlCommandType.INSERT.equals(((MappedStatement) invocation.getArgs()[0]).getSqlCommandType())
                 && ((invocation.getArgs()[1]).getClass().isAnnotationPresent(SequenceGenerator.class)
-                || SqlProvider.id((invocation.getArgs()[1]).getClass()).isAnnotationPresent(SequenceGenerator.class));
+                || (SqlProvider.idNuable((invocation.getArgs()[1]).getClass()) != null &&
+                SqlProvider.id((invocation.getArgs()[1]).getClass()).isAnnotationPresent(SequenceGenerator.class)));
     }
 
     private void generateId(Object parameter, Executor executor) throws Throwable {
         Field idField = SqlProvider.id(parameter.getClass());
-        if (idField.get(parameter) != null) {
+        if (idField == null || idField.get(parameter) != null) {
             return;
         }
         String seq;

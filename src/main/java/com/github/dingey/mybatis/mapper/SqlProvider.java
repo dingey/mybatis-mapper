@@ -488,6 +488,14 @@ public class SqlProvider {
      * @return SQL
      */
     public static Field id(Class<?> entity) {
+        Field id = idNuable(entity);
+        if (id == null) {
+            throw new MapperException(entity.getName() + "没有主键!");
+        }
+        return id;
+    }
+
+    static Field idNuable(Class<?> entity) {
         Field id = null;
         if (idFieldsMap.containsKey(entity)) {
             id = idFieldsMap.get(entity);
@@ -502,9 +510,6 @@ public class SqlProvider {
                     break;
                 }
             }
-        }
-        if (id == null) {
-            throw new MapperException(entity.getName() + "没有主键!");
         }
         return id;
     }
