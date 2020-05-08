@@ -22,6 +22,7 @@ public class SqlProvider {
     private static final HashMap<String, List<Field>> modelFieldsMap = new HashMap<>();
     private static final HashMap<Class<?>, Field> idFieldsMap = new HashMap<>();
     private static final HashMap<Field, Method> READ_METHOD = new HashMap<>();
+    private static final HashMap<Class<?>, Boolean> deteleMarkMap = new HashMap<>();
 
     private SqlProvider() {
     }
@@ -201,6 +202,32 @@ public class SqlProvider {
     }
 
     /**
+     * 根据是否有DeleteMark注解获取假删除和标记删除SQL
+     *
+     * @param context context
+     * @return SQL
+     */
+    public static String deleteSmart(ProviderContext context) {
+        Class<?> entity = MapperMethod.entity(context);
+        Boolean aBoolean = deteleMarkMap.get(entity);
+        if (aBoolean == null) {
+            aBoolean = false;
+            for (Field f : getCachedModelFields(entity)) {
+                if (f.isAnnotationPresent(DeleteMark.class)) {
+                    aBoolean = true;
+                    deteleMarkMap.put(entity, aBoolean);
+                    break;
+                }
+            }
+        }
+        if (aBoolean) {
+            return deleteMark(context);
+        } else {
+            return deleteById(context);
+        }
+    }
+
+    /**
      * 获取deleteSQL
      *
      * @param context context
@@ -375,6 +402,7 @@ public class SqlProvider {
             return sql.toString();
         });
     }
+
     /**
      * 获取selectSQL
      *

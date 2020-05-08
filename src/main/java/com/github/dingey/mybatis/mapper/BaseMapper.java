@@ -51,22 +51,14 @@ public interface BaseMapper<T> {
     int updateSelective(T t);
 
     /**
-     * 根据主键删除一条记录
+     * 根据主键删除一条记录，如果有DeleteMark则假删除，否则真删除
      *
+     * @see DeleteMark
      * @param id 主键
      * @return 影响的行数
      */
-    @UpdateProvider(type = SqlProvider.class, method = "deleteById")
+    @UpdateProvider(type = SqlProvider.class, method = "deleteSmart")
     int delete(Serializable id);
-
-    /**
-     * 根据主键标记删除一条记录
-     *
-     * @param id 主键
-     * @return 影响的行数
-     */
-    @UpdateProvider(type = SqlProvider.class, method = "deleteMark")
-    int deleteMark(Serializable id);
 
     /**
      * 根据主键查询
