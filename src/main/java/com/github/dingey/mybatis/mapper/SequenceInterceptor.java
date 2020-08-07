@@ -20,18 +20,11 @@ import java.util.Properties;
  * @author d
  */
 @Intercepts({@Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class})})
-public class InsertInterceptor implements Interceptor {
-    private static final Log log = LogFactory.getLog(InsertInterceptor.class);
+public class SequenceInterceptor implements Interceptor {
+    private static final Log log = LogFactory.getLog(SequenceInterceptor.class);
     private static final HashMap<Class<?>, String> SEQUENCE = new HashMap<>();
 
-    public InsertInterceptor() {
-    }
-
-    public InsertInterceptor(MapperProperties properties) {
-        Const.camelCase = properties.isCamelCase();
-        Const.columnUpper = properties.isColumnUpper();
-        Const.tablePrefix = properties.getTablePrefix();
-        Const.tableUpper = properties.isTableUpper();
+    public SequenceInterceptor() {
     }
 
     @Override

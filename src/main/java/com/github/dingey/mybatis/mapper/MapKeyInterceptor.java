@@ -20,12 +20,14 @@ import org.apache.ibatis.reflection.SystemMetaObject;
 import org.apache.ibatis.type.TypeHandler;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 
+import javax.persistence.MapKey;
+
 /**
  * @author d
  */
 @SuppressWarnings("unused")
 @Intercepts(@Signature(method = "handleResultSets", type = ResultSetHandler.class, args = {Statement.class}))
-public class MapResultsInterceptor implements Interceptor {
+public class MapKeyInterceptor implements Interceptor {
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
         MetaObject metaStatementHandler = getRealTarget(invocation);
@@ -35,7 +37,7 @@ public class MapResultsInterceptor implements Interceptor {
         String currentMethodName = id.substring(id.lastIndexOf(".") + 1);
         Method currentMethod = findMethod(className, currentMethodName);
 
-        if (currentMethod == null || currentMethod.getAnnotation(MapResults.class) == null) {
+        if (currentMethod == null || currentMethod.getAnnotation(MapKey.class) == null) {
             return invocation.proceed();
         }
         Statement statement = (Statement) invocation.getArgs()[0];
@@ -49,9 +51,6 @@ public class MapResultsInterceptor implements Interceptor {
      */
     private Method findMethod(String className, String targetMethodName) throws Throwable {
         Method[] methods = Class.forName(className).getDeclaredMethods();
-        if (methods == null) {
-            return null;
-        }
         for (Method method : methods) {
             if (method.getName().equals(targetMethodName)) {
                 return method;
@@ -72,7 +71,7 @@ public class MapResultsInterceptor implements Interceptor {
         if (returnType instanceof ParameterizedType) {
             ParameterizedType parameterizedType = (ParameterizedType) returnType;
             if (!Map.class.equals(parameterizedType.getRawType())) {
-                throw new RuntimeException("使用MapResults,返回类型必须是java.util.Map类型！method=" + mapResults);
+                throw new RuntimeException("使用MapKey,返回类型必须是java.util.Map类型！method=" + mapResults);
             }
             return new HashMap.SimpleEntry<>((Class<?>) parameterizedType.getActualTypeArguments()[0], (Class<?>) parameterizedType.getActualTypeArguments()[1]);
         }

@@ -151,7 +151,7 @@ class Jpa {
 	static boolean selectable(Field field) {
 		Boolean select = SELECTABLE.get(field);
 		if (select == null) {
-			select = !field.isAnnotationPresent(Transient.class);
+			select = !field.isAnnotationPresent(Transient.class)|| field.isAnnotationPresent(OrderBy.class);
 			SELECTABLE.put(field, select);
 		}
 		return select;

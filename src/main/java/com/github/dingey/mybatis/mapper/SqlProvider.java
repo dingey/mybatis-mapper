@@ -4,6 +4,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.builder.annotation.ProviderContext;
 
 import javax.persistence.Id;
+import javax.persistence.OrderBy;
 import javax.persistence.Version;
 import java.io.Serializable;
 import java.lang.reflect.Field;
@@ -417,10 +418,14 @@ public class SqlProvider {
             for (Field f : getCachedModelFields(bean.getClass())) {
                 if (Jpa.selectable(f)) {
                     Object v = readValue(f, bean);
-                    if (v == null) {
-                    } else if (f.isAnnotationPresent(OrderBy.class)) {
-                        orderby = String.valueOf(v);
-                    } else {
+                    if (f.isAnnotationPresent(OrderBy.class)) {
+                        OrderBy order = f.getAnnotation(OrderBy.class);
+                        if (v != null) {
+                            orderby = String.valueOf(v);
+                        } else if (!order.value().isEmpty()) {
+                            orderby = order.value();
+                        }
+                    } else if (v != null) {
                         sql.append(Const.AND).append(Jpa.column(f)).append("=#{").append(f.getName()).append("}");
                     }
                 }
