@@ -16,8 +16,8 @@ public class IdentityInterceptor implements Interceptor {
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
         Object arg = invocation.getArgs()[1];
-        Field id = SqlProvider.idNuable(arg.getClass());
-        if (id != null && id.get(arg) == null) {
+        Field id = ProviderContexts.id(arg.getClass());
+        if (id != null) {
             MappedStatement ms = (MappedStatement) invocation.getArgs()[0];
             String[] keyProperties = ms.getKeyProperties();
             if (keyProperties == null || keyProperties.length < 1) {

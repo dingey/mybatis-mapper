@@ -11,6 +11,7 @@ import java.util.List;
  * @param <T> 数据模型
  * @author d
  */
+@SuppressWarnings("unused")
 public interface BaseMapper<T> {
     /**
      * 插入
@@ -33,32 +34,42 @@ public interface BaseMapper<T> {
     int insertSelective(T t);
 
     /**
-     * 更新一条记录
+     * 根据主键更新一条记录
      *
      * @param t 参数
      * @return 影响的行数
      */
-    @UpdateProvider(type = SqlProvider.class, method = "update")
-    int update(T t);
+    @UpdateProvider(type = SqlProvider.class, method = "updateById")
+    int updateById(T t);
 
     /**
-     * 更新一条记录，忽略null
+     * 根据主键更新一条记录，忽略null
      *
      * @param t 参数
      * @return 影响的行数
      */
-    @UpdateProvider(type = SqlProvider.class, method = "updateSelective")
-    int updateSelective(T t);
+    @UpdateProvider(type = SqlProvider.class, method = "updateByIdSelective")
+    int updateByIdSelective(T t);
 
     /**
      * 根据主键删除一条记录，如果有DeleteMark则假删除，否则真删除
      *
-     * @see DeleteMark
      * @param id 主键
      * @return 影响的行数
+     * @see DeleteMark
      */
-    @UpdateProvider(type = SqlProvider.class, method = "deleteSmart")
-    int delete(Serializable id);
+    @UpdateProvider(type = SqlProvider.class, method = "deleteSmartById")
+    int deleteById(Serializable id);
+
+    /**
+     * 根据主键删除一条记录，如果有DeleteMark则假删除，否则真删除
+     *
+     * @param ids 主键集合
+     * @return 影响的行数
+     * @see DeleteMark
+     */
+    @UpdateProvider(type = SqlProvider.class, method = "deleteSmartByIds")
+    int deleteByIds(@Param("ids") Iterable<Serializable> ids);
 
     /**
      * 根据主键查询
@@ -67,7 +78,7 @@ public interface BaseMapper<T> {
      * @return 一条记录
      */
     @SelectProvider(type = SqlProvider.class, method = "getById")
-    T get(Serializable id);
+    T getById(Serializable id);
 
     /**
      * 查询一条记录
@@ -75,8 +86,8 @@ public interface BaseMapper<T> {
      * @param t 参数
      * @return 影响的行数
      */
-    //@SelectProvider(type = SqlProvider.class, method = "get")
-    //T get(T t);
+    @SelectProvider(type = SqlProvider.class, method = "list")
+    T get(T t);
 
     /**
      * 查询列表
@@ -94,7 +105,7 @@ public interface BaseMapper<T> {
      * @return 总数
      */
     @SelectProvider(type = SqlProvider.class, method = "count")
-    int count(T t);
+    long count(T t);
 
     /**
      * 查询所有
@@ -110,7 +121,7 @@ public interface BaseMapper<T> {
      * @return 总数
      */
     @SelectProvider(type = SqlProvider.class, method = "countAll")
-    int countAll();
+    long countAll();
 
     /**
      * 根据主键批量查询

@@ -38,12 +38,12 @@ public class SequenceInterceptor implements Interceptor {
     private boolean isSequence(Invocation invocation) {
         return SqlCommandType.INSERT.equals(((MappedStatement) invocation.getArgs()[0]).getSqlCommandType())
                 && ((invocation.getArgs()[1]).getClass().isAnnotationPresent(SequenceGenerator.class)
-                || (SqlProvider.idNuable((invocation.getArgs()[1]).getClass()) != null &&
-                SqlProvider.id((invocation.getArgs()[1]).getClass()).isAnnotationPresent(SequenceGenerator.class)));
+                || (ProviderContexts.id((invocation.getArgs()[1]).getClass()) != null &&
+                ProviderContexts.id((invocation.getArgs()[1]).getClass()).isAnnotationPresent(SequenceGenerator.class)));
     }
 
     private void generateId(Object parameter, Executor executor) throws Throwable {
-        Field idField = SqlProvider.id(parameter.getClass());
+        Field idField = ProviderContexts.id(parameter.getClass());
         if (idField == null || idField.get(parameter) != null) {
             return;
         }
@@ -51,7 +51,7 @@ public class SequenceInterceptor implements Interceptor {
         if (!SEQUENCE.containsKey(parameter.getClass())) {
             SequenceGenerator sequenceGenerator = parameter.getClass().getAnnotation(SequenceGenerator.class);
             if (sequenceGenerator == null) {
-                sequenceGenerator = SqlProvider.id(parameter.getClass()).getAnnotation(SequenceGenerator.class);
+                sequenceGenerator = ProviderContexts.id(parameter.getClass()).getAnnotation(SequenceGenerator.class);
             }
             seq = String.format("select %s.nextval from dual", sequenceGenerator.sequenceName().isEmpty() ? sequenceGenerator.name() : sequenceGenerator.sequenceName());
             SEQUENCE.put(parameter.getClass(), seq);
