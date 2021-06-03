@@ -34,6 +34,11 @@ public class SqlProvider {
         return sqlMap.computeIfAbsent(entity.getName() + ":updateSelective", v -> SourceProviderFactory.getSourceBuilder(entity).updateByIdSelective());
     }
 
+    public static String updates(ProviderContext context) {
+        Class<?> entity = ProviderContexts.entity(context);
+        return sqlMap.computeIfAbsent(entity.getName() + ":updateSelective", v -> SourceProviderFactory.getSourceBuilder(entity).updates());
+    }
+
     public static String getById(ProviderContext context) {
         Class<?> entity = ProviderContexts.entity(context);
         return sqlMap.computeIfAbsent(entity.getName() + ":getById", v -> SourceProviderFactory.getSourceBuilder(entity).getById());

@@ -40,6 +40,17 @@ class SourceScriptProvider<T> extends SourceProvider<T> {
         return sql.toString();
     }
 
+    public String updates() {
+        StringBuilder sql = new StringBuilder("<script>UPDATE ").append(table());
+        sql.append(set("columns."));
+        sql.append(where("cond."));
+        sql.append("</script>");
+        if (log.isDebugEnabled()) {
+            log.debug("==>  方法 updates, Source: " + sql.toString());
+        }
+        return sql.toString();
+    }
+
     public String listByIds() {
         StringBuilder sql = new StringBuilder("<script>SELECT ").append(columnsString()).append(" FROM ").append(table()).append(" WHERE ");
         sql.append(String.format("%s IN ", column(id())));
@@ -124,12 +135,16 @@ class SourceScriptProvider<T> extends SourceProvider<T> {
     }
 
     private String set() {
+        return set("");
+    }
+
+    private String set(String param) {
         StringBuilder sql = new StringBuilder("<set>");
         for (Field f : getAllFields()) {
             if (!Jpa.updatable(f) || f.isAnnotationPresent(Id.class)) {
                 continue;
             }
-            sql.append(String.format("<if test=\"%s !=null\"> %s=#{%s},</if>", f.getName(), Jpa.column(f), f.getName()));
+            sql.append(String.format("<if test=\"%s%s !=null\"> %s=#{%s%s},</if>", param, f.getName(), Jpa.column(f), param, f.getName()));
         }
         sql.append("</set>");
         return sql.toString();
@@ -140,10 +155,14 @@ class SourceScriptProvider<T> extends SourceProvider<T> {
     }
 
     private String where() {
+        return where("");
+    }
+
+    private String where(String param) {
         StringBuilder sql = new StringBuilder("<where>");
         for (Field f : getAllFields()) {
             if (Jpa.selectable(f)) {
-                sql.append(String.format("<if test=\"%s !=null\"> and %s=#{%s}</if>", f.getName(), Jpa.column(f), f.getName()));
+                sql.append(String.format("<if test=\"%s%s !=null\"> and %s=#{%s%s}</if>", param, f.getName(), Jpa.column(f), param, f.getName()));
             }
         }
         sql.append("</where>");

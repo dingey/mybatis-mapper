@@ -136,7 +136,7 @@ public class SourceProvider<T> {
     }
 
     String table() {
-        return StringUtil.snakeCase(clazz.getSimpleName());
+        return Jpa.table(clazz);
     }
 
     String column(Field f) {
