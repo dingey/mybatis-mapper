@@ -1,5 +1,11 @@
 package com.github.dingey.mybatis.mapper;
 
+import com.github.dingey.mybatis.mapper.annotation.DeleteMark;
+import com.github.dingey.mybatis.mapper.core.SqlProvider;
+import com.github.dingey.mybatis.mapper.lambda.Delete;
+import com.github.dingey.mybatis.mapper.lambda.Select;
+import com.github.dingey.mybatis.mapper.lambda.Update;
+import com.github.dingey.mybatis.mapper.utils.Const;
 import org.apache.ibatis.annotations.*;
 
 import java.io.Serializable;
@@ -14,22 +20,11 @@ import java.util.List;
 @SuppressWarnings("unused")
 public interface BaseMapper<T> {
     /**
-     * 插入，包含null的字段。生成的sql:
-     * <p>{@code insert into t ( col1 ) values ( #{col1} )}
-     *
-     * @param t 参数
-     * @return 影响的行数
-     */
-    @InsertProvider(type = SqlProvider.class, method = "insert")
-    @Options(useGeneratedKeys = true)
-    int insert(T t);
-
-    /**
-     * 可选择插入，忽略null的字段。
+     * 插入一条记录，忽略null的字段。
      * <p>生成的sql:
      * <p><pre>{@code insert into t
      * <trim prefix="(" suffix=")" suffixOverrides=",">
-     *     <if test="nickName != null">
+     *     <if test="col1 != null">
      *       col1,
      *     </if>
      * </trim>
@@ -45,10 +40,22 @@ public interface BaseMapper<T> {
      */
     @InsertProvider(type = SqlProvider.class, method = "insertSelective")
     @Options(useGeneratedKeys = true)
-    int insertSelective(T t);
+    int insert(T t);
 
     /**
-     * 根据主键更新一条记录，忽略null的字段，等同于{@link BaseMapper#updateByIdSelective}。
+     * 批量插入多条记录，包含null的字段。暂不支持oracle的序列的id批量设置和返回
+     * <p>生成的sql:
+     * <p><pre>{@code insert into t (col1,col2) values (#{col1}, #{col2}),(#{col1}, #{col2}) }
+     * </pre>
+     * @param list 参数
+     * @return 影响行数
+     */
+    @InsertProvider(type = SqlProvider.class, method = "insertBatch")
+    @Options(useGeneratedKeys = true)
+    int insertBatch(@Param("list") List<T> list);
+
+    /**
+     * 根据主键更新一条记录，忽略null的字段
      * <p>生成的sql:
      * <p><pre>{@code update t
      * <set>
@@ -63,49 +70,72 @@ public interface BaseMapper<T> {
      * @return 影响的行数
      */
     @UpdateProvider(type = SqlProvider.class, method = "updateByIdSelective")
-    int update(T t);
-
-    /**
-     * 根据主键更新一条记录，包含null的字段。
-     * <p>生成的sql:
-     * <p><pre>{@code update t
-     * set col1 = #{col1}
-     * where id = #{id} }
-     * </pre>
-     *
-     * @param t 参数
-     * @return 影响的行数
-     */
-    @UpdateProvider(type = SqlProvider.class, method = "updateById")
     int updateById(T t);
 
     /**
-     * 根据主键更新一条记录，忽略null的字段,等同于{@link BaseMapper#updateByIdSelective}
+     * 根据update参数修改记录
+     * <p>示例:
+     * <p><pre>{@code new Update<User>().set(User::getName,"test").eq(User::getId,1L)}
+     * 生成SQL为：UPDATE user SET name = ? WHERE id = ?
+     * </pre>
      *
-     * @param t 参数
+     * @param update 参数，支持lambda形式写法
      * @return 影响的行数
      */
-    @UpdateProvider(type = SqlProvider.class, method = "updateByIdSelective")
-    int updateSelective(T t);
+    @UpdateProvider(type = SqlProvider.class, method = "lambda")
+    int update(@Param(Const.PARAM) Update<T> update);
 
     /**
-     * 根据主键更新一条记录，忽略null的字段,等同于{@link BaseMapper#updateSelective}
+     * 根据delete构建删除语句
+     * <p>示例:
+     * <p><pre>{@code new Delete<User>().eq(User::getId,1L)}
+     * 生成SQL为：DELETE FROM user WHERE id = 1L
+     * </pre>
      *
-     * @param t 参数
+     * @param delete 参数
      * @return 影响的行数
      */
-    @UpdateProvider(type = SqlProvider.class, method = "updateByIdSelective")
-    int updateByIdSelective(T t);
+    @UpdateProvider(type = SqlProvider.class, method = "lambda")
+    int delete(@Param(Const.PARAM) Delete<T> delete);
 
     /**
-     * 根据条件批量更新数据，忽略null的字段
+     * 根据select构建查询多条记录语句
+     * <p>示例:
+     * <p><pre>{@code new Select<User>().eq(User::getId,1L)}
+     * 生成SQL为：SELECT * FROM user WHERE id = 1L
+     * </pre>
      *
-     * @param columns   需要更新的列，忽略null的字段
-     * @param condition where后的条件，忽略null的字段
+     * @param select 参数
      * @return 影响的行数
      */
-    @UpdateProvider(type = SqlProvider.class, method = "updates")
-    int updates(@Param("columns") T columns, @Param("cond") T condition);
+    @SelectProvider(type = SqlProvider.class, method = "select")
+    List<T> selectList(@Param(Const.PARAM) Select<T> select);
+
+    /**
+     * 根据select构建查询一条记录语句
+     * <p>示例:
+     * <p><pre>{@code new Select<User>().eq(User::getId,1L)}
+     * 生成SQL为：SELECT * FROM user WHERE id = 1L
+     * </pre>
+     *
+     * @param select 参数
+     * @return 影响的行数
+     */
+    @SelectProvider(type = SqlProvider.class, method = "select")
+    T selectOne(@Param(Const.PARAM) Select<T> select);
+
+    /**
+     * 根据select构建查询总数语句
+     * <p>示例:
+     * <p><pre>{@code new Select<User>().eq(User::getId,1L)}
+     * 生成SQL为：SELECT COUNT(*) FROM user WHERE id = 1L
+     * </pre>
+     *
+     * @param select 参数
+     * @return 影响的行数
+     */
+    @SelectProvider(type = SqlProvider.class, method = "selectCount")
+    long selectCount(@Param(Const.PARAM) Select<T> select);
 
     /**
      * 根据主键删除一条记录，如果有{@code DeleteMark}则假删除，否则真删除
@@ -125,7 +155,7 @@ public interface BaseMapper<T> {
      * @see DeleteMark
      */
     @UpdateProvider(type = SqlProvider.class, method = "deleteSmartByIds")
-    int deleteByIds(@Param("ids") Iterable<? extends Serializable> ids);
+    int deleteByIds(@Param(Const.IDS) Iterable<? extends Serializable> ids);
 
     /**
      * 根据主键查询
@@ -195,5 +225,5 @@ public interface BaseMapper<T> {
      * @return 列表
      */
     @SelectProvider(type = SqlProvider.class, method = "listByIds")
-    List<T> listByIds(@Param("ids") Iterable<? extends Serializable> ids);
+    List<T> listByIds(@Param(Const.IDS) Iterable<? extends Serializable> ids);
 }

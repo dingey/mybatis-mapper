@@ -1,4 +1,8 @@
-package com.github.dingey.mybatis.mapper;
+package com.github.dingey.mybatis.mapper.core;
+
+import com.github.dingey.mybatis.mapper.annotation.DeleteMark;
+import com.github.dingey.mybatis.mapper.utils.ClassUtils;
+import com.github.dingey.mybatis.mapper.utils.JpaUtils;
 
 import javax.persistence.Id;
 import javax.persistence.OrderBy;
@@ -24,6 +28,31 @@ class SourceScriptProvider<T> extends SourceProvider<T> {
         sql.append("</script>");
         if (log.isDebugEnabled()) {
             log.debug("==>  方法 insertSelective, Source: " + sql.toString());
+        }
+        return sql.toString();
+    }
+
+    public String insertBatch() {
+        StringBuilder sql = new StringBuilder("<script>INSERT INTO ").append(table());
+        StringBuilder columnSql = new StringBuilder(" (");
+        StringBuilder propSql = new StringBuilder(" (");
+        for (Field f : getAllFields()) {
+            if (!JpaUtils.insertable(f)) {
+                continue;
+            }
+            columnSql.append(String.format(" %s,", column(f)));
+            propSql.append(String.format(" #{entity.%s},", f.getName()));
+        }
+        columnSql.deleteCharAt(columnSql.length() - 1);
+        columnSql.append(" )");
+        propSql.deleteCharAt(propSql.length() - 1);
+        propSql.append(" )");
+        sql.append(columnSql.toString());
+        sql.append(" VALUES<foreach collection =\"list\" item=\"entity\" separator =\",\">");
+        sql.append(propSql.toString());
+        sql.append("</foreach></script>");
+        if (log.isDebugEnabled()) {
+            log.debug("==>  方法 insert, Source: " + sql.toString());
         }
         return sql.toString();
     }
@@ -74,7 +103,7 @@ class SourceScriptProvider<T> extends SourceProvider<T> {
     public String deleteMarkByIds() {
         Field delete = getDeleteMarkField();
         StringBuilder sql = new StringBuilder("<script>UPDATE ").append(table()).append(" SET ");
-        sql.append(Jpa.column(delete)).append(" = ").append(delete.getAnnotation(DeleteMark.class).value());
+        sql.append(JpaUtils.column(delete)).append(" = ").append(delete.getAnnotation(DeleteMark.class).value());
         sql.append(String.format(" WHERE %s IN ", column(id())));
         sql.append("<foreach item=\"id\" collection=\"ids\" separator=\",\" open=\"(\" close=\")\" index=\"\">#{id}</foreach></script>");
         if (log.isDebugEnabled()) {
@@ -113,10 +142,10 @@ class SourceScriptProvider<T> extends SourceProvider<T> {
     private String trim1() {
         StringBuilder sql = new StringBuilder(" <trim prefix=\"(\" suffix=\")\" suffixOverrides=\",\">");
         for (Field f : getAllFields()) {
-            if (!Jpa.insertable(f)) {
+            if (!JpaUtils.insertable(f)) {
                 continue;
             }
-            sql.append(String.format("<if test=\"%s != null\">%s,</if>", f.getName(), Jpa.column(f)));
+            sql.append(String.format("<if test=\"%s != null\">%s,</if>", f.getName(), JpaUtils.column(f)));
         }
         sql.append("</trim>");
         return sql.toString();
@@ -125,7 +154,7 @@ class SourceScriptProvider<T> extends SourceProvider<T> {
     private String trim2() {
         StringBuilder sql = new StringBuilder(" <trim prefix=\"values (\" suffix=\")\" suffixOverrides=\",\">");
         for (Field f : getAllFields()) {
-            if (!Jpa.insertable(f)) {
+            if (!JpaUtils.insertable(f)) {
                 continue;
             }
             sql.append(String.format("<if test=\"%s != null\">#{%s},</if>", f.getName(), f.getName()));
@@ -141,17 +170,17 @@ class SourceScriptProvider<T> extends SourceProvider<T> {
     private String set(String param) {
         StringBuilder sql = new StringBuilder("<set>");
         for (Field f : getAllFields()) {
-            if (!Jpa.updatable(f) || f.isAnnotationPresent(Id.class)) {
+            if (!JpaUtils.updatable(f) || f.isAnnotationPresent(Id.class)) {
                 continue;
             }
-            sql.append(String.format("<if test=\"%s%s !=null\"> %s=#{%s%s},</if>", param, f.getName(), Jpa.column(f), param, f.getName()));
+            sql.append(String.format("<if test=\"%s%s !=null\"> %s=#{%s%s},</if>", param, f.getName(), JpaUtils.column(f), param, f.getName()));
         }
         sql.append("</set>");
         return sql.toString();
     }
 
     private String idExp() {
-        return String.format("%s=#{%s}", Jpa.column(id()), id().getName());
+        return String.format("%s=#{%s}", JpaUtils.column(id()), id().getName());
     }
 
     private String where() {
@@ -161,8 +190,8 @@ class SourceScriptProvider<T> extends SourceProvider<T> {
     private String where(String param) {
         StringBuilder sql = new StringBuilder("<where>");
         for (Field f : getAllFields()) {
-            if (Jpa.selectable(f)) {
-                sql.append(String.format("<if test=\"%s%s !=null\"> and %s=#{%s%s}</if>", param, f.getName(), Jpa.column(f), param, f.getName()));
+            if (JpaUtils.selectable(f)) {
+                sql.append(String.format("<if test=\"%s%s !=null\"> and %s=#{%s%s}</if>", param, f.getName(), JpaUtils.column(f), param, f.getName()));
             }
         }
         sql.append("</where>");
@@ -170,7 +199,7 @@ class SourceScriptProvider<T> extends SourceProvider<T> {
     }
 
     private String order() {
-        Optional<Field> optional = ClassUtil.getByAnnotation(OrderBy.class, getClazz());
+        Optional<Field> optional = ClassUtils.getByAnnotation(OrderBy.class, getClazz());
         if (!optional.isPresent()) {
             return "";
         }
@@ -181,7 +210,7 @@ class SourceScriptProvider<T> extends SourceProvider<T> {
         } else if (f.isAnnotationPresent(Transient.class)) {
             return String.format("<if test=\"%s !=null\"> order by #{%s} </if>", f.getName(), f.getName());
         } else {
-            return String.format(" order by %s", Jpa.column(f));
+            return String.format(" order by %s", JpaUtils.column(f));
         }
     }
 }

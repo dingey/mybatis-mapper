@@ -1,4 +1,4 @@
-package com.github.dingey.mybatis.mapper;
+package com.github.dingey.mybatis.mapper.enums;
 
 enum ProviderMethod {
     insertSelective,

@@ -1,4 +1,4 @@
-package com.github.dingey.mybatis.mapper;
+package com.github.dingey.mybatis.mapper.core;
 
 import java.util.HashMap;
 import java.util.Map;

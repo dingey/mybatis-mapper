@@ -1,5 +1,11 @@
-package com.github.dingey.mybatis.mapper;
+package com.github.dingey.mybatis.mapper.core;
 
+import com.github.dingey.mybatis.mapper.annotation.DeleteMark;
+import com.github.dingey.mybatis.mapper.exception.MapperException;
+import com.github.dingey.mybatis.mapper.interceptor.SequenceInterceptor;
+import com.github.dingey.mybatis.mapper.utils.ClassUtils;
+import com.github.dingey.mybatis.mapper.utils.JpaUtils;
+import com.github.dingey.mybatis.mapper.utils.ProviderContextUtils;
 import org.apache.ibatis.logging.Log;
 import org.apache.ibatis.logging.LogFactory;
 
@@ -24,7 +30,7 @@ public class SourceProvider<T> {
         StringBuilder columnSql = new StringBuilder(" (");
         StringBuilder propSql = new StringBuilder(" VALUES (");
         for (Field f : getAllFields()) {
-            if (!Jpa.insertable(f)) {
+            if (!JpaUtils.insertable(f)) {
                 continue;
             }
             columnSql.append(String.format(" %s,", column(f)));
@@ -45,7 +51,7 @@ public class SourceProvider<T> {
     public String updateById() {
         StringBuilder sql = new StringBuilder("UPDATE ").append(table()).append(" SET");
         for (Field f : getAllFields()) {
-            if (!Jpa.updatable(f) || f.isAnnotationPresent(Id.class)) {
+            if (!JpaUtils.updatable(f) || f.isAnnotationPresent(Id.class)) {
                 continue;
             }
             sql.append(String.format(" %s = #{%s},", column(f), f.getName()));
@@ -115,7 +121,7 @@ public class SourceProvider<T> {
     }
 
     Field id() {
-        Field id = ProviderContexts.id(clazz);
+        Field id = ProviderContextUtils.id(clazz);
         if (id == null) {
             throw new MapperException("id不存在");
         }
@@ -124,27 +130,19 @@ public class SourceProvider<T> {
 
 
     String columnsString() {
-        StringBuilder sql = new StringBuilder();
-        for (Field f : getAllFields()) {
-            if (!Jpa.selectable(f)) {
-                continue;
-            }
-            sql.append(Jpa.column(f)).append(", ");
-        }
-        sql.delete(sql.length() - 2, sql.length() - 1);
-        return sql.toString();
+        return JpaUtils.getColumnString(clazz);
     }
 
     String table() {
-        return Jpa.table(clazz);
+        return JpaUtils.table(clazz);
     }
 
     String column(Field f) {
-        return Jpa.column(f);
+        return JpaUtils.column(f);
     }
 
     List<Field> getAllFields() {
-        return ClassUtil.getDeclaredFields(clazz);
+        return ClassUtils.getDeclaredFields(clazz);
     }
 
     public Class<T> getClazz() {
@@ -152,7 +150,7 @@ public class SourceProvider<T> {
     }
 
     Field getDeleteMarkField() {
-        Optional<Field> first = ClassUtil.getByAnnotation(DeleteMark.class, getClazz());
+        Optional<Field> first = ClassUtils.getByAnnotation(DeleteMark.class, getClazz());
         if (!first.isPresent()) {
             throw new MapperException("该注解不存在" + DeleteMark.class.getSimpleName());
         }

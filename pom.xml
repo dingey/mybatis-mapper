@@ -5,7 +5,7 @@
     <groupId>com.github.dingey</groupId>
     <artifactId>mybatis-mapper</artifactId>
     <packaging>jar</packaging>
-    <version>0.4.1</version>
+    <version>0.5.0</version>
     <url>https://github.com/dingey/mybatis-mapper</url>
     <name>mybatis-mapper</name>
     <description>mybatis crud mapper</description>
@@ -26,7 +26,7 @@
         <dependency>
             <groupId>org.mybatis</groupId>
             <artifactId>mybatis</artifactId>
-            <version>3.4.5</version>
+            <version>3.5.7</version>
             <optional>true</optional>
         </dependency>
     </dependencies>

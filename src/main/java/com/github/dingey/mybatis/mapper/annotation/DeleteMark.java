@@ -1,4 +1,4 @@
-package com.github.dingey.mybatis.mapper;
+package com.github.dingey.mybatis.mapper.annotation;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;

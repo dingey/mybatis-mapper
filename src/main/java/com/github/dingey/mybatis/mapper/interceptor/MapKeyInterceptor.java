@@ -1,4 +1,4 @@
-package com.github.dingey.mybatis.mapper;
+package com.github.dingey.mybatis.mapper.interceptor;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
 
+import com.github.dingey.mybatis.mapper.exception.MapperException;
 import org.apache.ibatis.executor.resultset.ResultSetHandler;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.plugin.Interceptor;
@@ -43,7 +44,14 @@ public class MapKeyInterceptor implements Interceptor {
         Statement statement = (Statement) invocation.getArgs()[0];
         Map.Entry<Class<?>, Class<?>> kvTypePair = getKVTypeOfReturnMap(currentMethod);
         TypeHandlerRegistry typeHandlerRegistry = mappedStatement.getConfiguration().getTypeHandlerRegistry();
-        return result2Map(statement, typeHandlerRegistry, kvTypePair);
+        Class<?> rawType = getRawType(currentMethod);
+        if (rawType == List.class) {
+            return result2MapList(statement, typeHandlerRegistry, kvTypePair);
+        } else if (rawType == Set.class) {
+            return result2MapSet(statement, typeHandlerRegistry, kvTypePair);
+        } else {
+            return result2Map(statement, typeHandlerRegistry, kvTypePair);
+        }
     }
 
     /**
@@ -73,9 +81,30 @@ public class MapKeyInterceptor implements Interceptor {
             if (!Map.class.equals(parameterizedType.getRawType())) {
                 throw new RuntimeException("使用MapKey,返回类型必须是java.util.Map类型！method=" + mapResults);
             }
-            return new HashMap.SimpleEntry<>((Class<?>) parameterizedType.getActualTypeArguments()[0], (Class<?>) parameterizedType.getActualTypeArguments()[1]);
+            if (parameterizedType.getActualTypeArguments().length < 2) {
+                throw new MapperException("使用MapKey,返回参数泛型类型数量必须为2" + mapResults);
+            }
+            if (parameterizedType.getActualTypeArguments()[1] instanceof ParameterizedType) {
+                return new HashMap.SimpleEntry<>((Class<?>) parameterizedType.getActualTypeArguments()[0], (Class<?>) ((ParameterizedType) parameterizedType.getActualTypeArguments()[1]).getActualTypeArguments()[0]);
+            } else {
+                return new HashMap.SimpleEntry<>((Class<?>) parameterizedType.getActualTypeArguments()[0], (Class<?>) parameterizedType.getActualTypeArguments()[1]);
+            }
         }
         return new HashMap.SimpleEntry<>(null, null);
+    }
+
+    private Class<?> getRawType(Method mapResults) {
+        Type returnType = mapResults.getGenericReturnType();
+
+        if (returnType instanceof ParameterizedType) {
+            ParameterizedType parameterizedType = (ParameterizedType) returnType;
+            Type vType = parameterizedType.getActualTypeArguments()[1];
+            if (vType instanceof ParameterizedType) {
+                return (Class<?>) ((ParameterizedType) vType).getRawType();
+            }
+            return (Class<?>) vType;
+        }
+        return null;
     }
 
     /**
@@ -94,6 +123,30 @@ public class MapKeyInterceptor implements Interceptor {
             Object k = this.getObject(resultSet, 1, typeHandlerRegistry, kvTypePair.getKey());
             Object v = this.getObject(resultSet, 2, typeHandlerRegistry, kvTypePair.getValue());
             map.put(k, v);
+        }
+        return Collections.singletonList(map);
+    }
+
+    private Object result2MapList(Statement statement, TypeHandlerRegistry typeHandlerRegistry, Map.Entry<Class<?>, Class<?>> kvTypePair) throws SQLException {
+        ResultSet resultSet = statement.getResultSet();
+        Map<Object, List<Object>> map = new LinkedHashMap<>();
+        while (resultSet.next()) {
+            Object k = this.getObject(resultSet, 1, typeHandlerRegistry, kvTypePair.getKey());
+            Object v = this.getObject(resultSet, 2, typeHandlerRegistry, kvTypePair.getValue());
+            List<Object> objects = map.computeIfAbsent(k, k1 -> new ArrayList<>());
+            objects.add(v);
+        }
+        return Collections.singletonList(map);
+    }
+
+    private Object result2MapSet(Statement statement, TypeHandlerRegistry typeHandlerRegistry, Map.Entry<Class<?>, Class<?>> kvTypePair) throws SQLException {
+        ResultSet resultSet = statement.getResultSet();
+        Map<Object, Set<Object>> map = new LinkedHashMap<>();
+        while (resultSet.next()) {
+            Object k = this.getObject(resultSet, 1, typeHandlerRegistry, kvTypePair.getKey());
+            Object v = this.getObject(resultSet, 2, typeHandlerRegistry, kvTypePair.getValue());
+            Set<Object> objects = map.computeIfAbsent(k, k1 -> new HashSet<>());
+            objects.add(v);
         }
         return Collections.singletonList(map);
     }

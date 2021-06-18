@@ -1,4 +1,4 @@
-package com.github.dingey.mybatis.mapper;
+package com.github.dingey.mybatis.mapper.utils;
 
 import org.apache.ibatis.builder.annotation.ProviderContext;
 
@@ -13,11 +13,11 @@ import java.util.Map;
  * @author d
  * @since 0.4.0
  */
-public class ProviderContexts {
+public class ProviderContextUtils {
     private static final Map<Class<?>, Class<?>> entityCacheMap = new HashMap<>();
     private static final Map<Class<?>, Field> idMap = new HashMap<>();
 
-    private ProviderContexts() {
+    private ProviderContextUtils() {
     }
 
     /**
@@ -26,12 +26,12 @@ public class ProviderContexts {
      * @param entity 模型对象
      * @return SQL
      */
-    static Field id(Class<?> entity) {
+    public static Field id(Class<?> entity) {
         Field id = null;
         if (idMap.containsKey(entity)) {
             id = idMap.get(entity);
         } else {
-            for (Field f : ClassUtil.getDeclaredFields(entity)) {
+            for (Field f : ClassUtils.getDeclaredFields(entity)) {
                 if (f.isAnnotationPresent(Id.class)) {
                     if (!f.isAccessible()) {
                         f.setAccessible(true);
@@ -45,7 +45,7 @@ public class ProviderContexts {
         return id;
     }
 
-    static Class<?> entity(ProviderContext context) {
+    public static Class<?> entity(ProviderContext context) {
         Class<?> aClass = entityCacheMap.get(context.getMapperType());
         if (aClass == null) {
             Type[] genericInterfaces = context.getMapperType().getGenericInterfaces();
