@@ -2,14 +2,16 @@ package com.github.dingey.mybatis.mapper;
 
 import com.github.dingey.mybatis.mapper.annotation.DeleteMark;
 import com.github.dingey.mybatis.mapper.core.SqlProvider;
-import com.github.dingey.mybatis.mapper.lambda.Delete;
-import com.github.dingey.mybatis.mapper.lambda.Select;
+import com.github.dingey.mybatis.mapper.lambda.AbstractInsert;
+import com.github.dingey.mybatis.mapper.lambda.AbstractSelect;
 import com.github.dingey.mybatis.mapper.lambda.Update;
 import com.github.dingey.mybatis.mapper.utils.Const;
 import org.apache.ibatis.annotations.*;
 
+import javax.persistence.MapKey;
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 通用模板
@@ -47,6 +49,7 @@ public interface BaseMapper<T> {
      * <p>生成的sql:
      * <p><pre>{@code insert into t (col1,col2) values (#{col1}, #{col2}),(#{col1}, #{col2}) }
      * </pre>
+     *
      * @param list 参数
      * @return 影响行数
      */
@@ -96,7 +99,7 @@ public interface BaseMapper<T> {
      * @return 影响的行数
      */
     @UpdateProvider(type = SqlProvider.class, method = "lambda")
-    int delete(@Param(Const.PARAM) Delete<T> delete);
+    int delete(@Param(Const.PARAM) com.github.dingey.mybatis.mapper.lambda.Delete<T> delete);
 
     /**
      * 根据select构建查询多条记录语句
@@ -109,7 +112,7 @@ public interface BaseMapper<T> {
      * @return 影响的行数
      */
     @SelectProvider(type = SqlProvider.class, method = "select")
-    List<T> selectList(@Param(Const.PARAM) Select<T> select);
+    List<T> selectList(@Param(Const.PARAM) AbstractSelect<T, ?> select);
 
     /**
      * 根据select构建查询一条记录语句
@@ -122,7 +125,7 @@ public interface BaseMapper<T> {
      * @return 影响的行数
      */
     @SelectProvider(type = SqlProvider.class, method = "select")
-    T selectOne(@Param(Const.PARAM) Select<T> select);
+    T selectOne(@Param(Const.PARAM) AbstractSelect<T, ?> select);
 
     /**
      * 根据select构建查询总数语句
@@ -135,7 +138,7 @@ public interface BaseMapper<T> {
      * @return 影响的行数
      */
     @SelectProvider(type = SqlProvider.class, method = "selectCount")
-    long selectCount(@Param(Const.PARAM) Select<T> select);
+    long selectCount(@Param(Const.PARAM) AbstractSelect<T, ?> select);
 
     /**
      * 根据主键删除一条记录，如果有{@code DeleteMark}则假删除，否则真删除
@@ -226,4 +229,20 @@ public interface BaseMapper<T> {
      */
     @SelectProvider(type = SqlProvider.class, method = "listByIds")
     List<T> listByIds(@Param(Const.IDS) Iterable<? extends Serializable> ids);
+
+    // 根据select查询
+    @SelectProvider(type = SqlProvider.class, method = "select")
+    List<Map<String, Object>> selectMaps(@Param(Const.PARAM) AbstractSelect<T, ?> select);
+
+    // 根据 select 查询。注意： 只返回第一个字段的值
+    @SelectProvider(type = SqlProvider.class, method = "select")
+    List<Object> selectObjs(@Param(Const.PARAM) AbstractSelect<T, ?> select);
+
+    // 根据 select 查询列1、列2并将结果返回为map。注意： 列1为key,列2为value
+    @MapKey
+    @SelectProvider(type = SqlProvider.class, method = "select")
+    Map<Object, Object> selectKVMap(@Param(Const.PARAM) AbstractSelect<T, ?> select);
+
+    @InsertProvider(type = SqlProvider.class, method = "lambda")
+    int executeInsert(@Param(Const.PARAM) AbstractInsert<T, ?> insert);
 }

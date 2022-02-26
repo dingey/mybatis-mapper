@@ -5,6 +5,7 @@ import com.github.dingey.mybatis.mapper.exception.MapperException;
 import java.lang.annotation.Annotation;
 import java.lang.invoke.SerializedLambda;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
 
@@ -71,5 +72,29 @@ public final class ClassUtils {
             }
         }
         return field;
+    }
+
+    public static Method getMethodWithParent(Class<?> t, String methodName) {
+
+        for (Class<?> clazz = t; clazz != Object.class && clazz != Class.class && clazz != Field.class && clazz != null; clazz = clazz.getSuperclass()) {
+            try {
+                for (Method method : clazz.getDeclaredMethods()) {
+                    if (method.getName().equals(methodName)) {
+                        return method;
+                    }
+                }
+            } catch (Exception ignore) {
+            }
+        }
+        if (t != null && t.getInterfaces().length > 0) {
+            for (Class<?> tInterface : t.getInterfaces()) {
+                Method method = getMethodWithParent(tInterface, methodName);
+                if (method != null) {
+                    return method;
+                }
+            }
+        }
+
+        return null;
     }
 }

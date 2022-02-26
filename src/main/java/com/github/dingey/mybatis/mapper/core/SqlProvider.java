@@ -1,8 +1,8 @@
 package com.github.dingey.mybatis.mapper.core;
 
 import com.github.dingey.mybatis.mapper.annotation.DeleteMark;
-import com.github.dingey.mybatis.mapper.lambda.AbstractStatement;
-import com.github.dingey.mybatis.mapper.lambda.Select;
+import com.github.dingey.mybatis.mapper.lambda.AbstractSelect;
+import com.github.dingey.mybatis.mapper.lambda.AbstractSql;
 import com.github.dingey.mybatis.mapper.utils.ClassUtils;
 import com.github.dingey.mybatis.mapper.utils.Const;
 import com.github.dingey.mybatis.mapper.utils.ProviderContextUtils;
@@ -121,25 +121,27 @@ public class SqlProvider {
         }
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static String lambda(ProviderContext context, @Param(Const.PARAM) AbstractStatement statement) {
+    @SuppressWarnings({"rawtypes"})
+    public static String lambda(ProviderContext context, @Param(Const.PARAM) AbstractSql statement) {
         bindEntityClass(statement, context);
         return statement.toSql();
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static String select(ProviderContext context, @Param(Const.PARAM) Select select) {
+    @SuppressWarnings({"rawtypes"})
+    public static String select(ProviderContext context, @Param(Const.PARAM) AbstractSelect select) {
         bindEntityClass(select, context);
         return select.toSql();
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static String selectCount(ProviderContext context, @Param(Const.PARAM) Select select) {
+    @SuppressWarnings({"rawtypes"})
+    public static String selectCount(ProviderContext context, @Param(Const.PARAM) AbstractSelect select) {
         bindEntityClass(select, context);
-        return select.toCountSql();
+        String s = select.toSql();
+        return "<script>SELECT COUNT(0)" + s.substring(s.indexOf(" FROM "));
     }
 
-    private static void bindEntityClass(AbstractStatement statement, ProviderContext context) {
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void bindEntityClass(AbstractSql statement, ProviderContext context) {
         if (statement.getEntityClass() == null) {
             statement.setEntityClass(ProviderContextUtils.entity(context));
         }

@@ -1,17 +1,17 @@
 package com.github.dingey.mybatis.mapper.utils;
 
+import com.github.dingey.mybatis.mapper.lambda.SFunction;
+
 import javax.persistence.*;
-import java.beans.BeanInfo;
-import java.beans.Introspector;
 import java.lang.invoke.SerializedLambda;
 import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.*;
 
 @SuppressWarnings("unused")
 public final class JpaUtils {
     private static final Map<Class<?>, String> columns = new WeakHashMap<>();
+    private static final Map<Class<?>, List<Field>> insertColumnFields = new WeakHashMap<>();
+    private static final Map<Class<?>, String> insertColumnString = new WeakHashMap<>();
     private static final Map<SerializedLambda, String> lambdaColumnMap = new WeakHashMap<>();
 
     private JpaUtils() {
@@ -52,6 +52,8 @@ public final class JpaUtils {
             return column(f.getName());
         }
     }
+
+
 
     public static String column(String name) {
         if (Const.camelCase) {
@@ -122,6 +124,41 @@ public final class JpaUtils {
             sql.delete(sql.length() - 2, sql.length() - 1);
             s = sql.toString();
             columns.put(clazz, s);
+        }
+        return s;
+    }
+
+    public static List<Field> getInsertColumn(Class<?> clazz) {
+        if (clazz == null) {
+            return Collections.emptyList();
+        }
+        List<Field> fs = insertColumnFields.get(clazz);
+        if (fs == null) {
+            fs = new ArrayList<>();
+            for (Field f : ClassUtils.getDeclaredFields(clazz)) {
+                if (!JpaUtils.insertable(f)) {
+                    continue;
+                }
+                fs.add(f);
+            }
+            insertColumnFields.put(clazz, fs);
+        }
+        return fs;
+    }
+
+    public static String getInsertColumnString(Class<?> clazz) {
+        String s = insertColumnString.get(clazz);
+        if (s == null) {
+            StringBuilder sb = new StringBuilder();
+            List<Field> fields = getInsertColumn(clazz);
+            for (int i = 0; i < fields.size(); i++) {
+                sb.append(fields.get(i));
+                if (i != fields.size() - 1) {
+                    sb.append(",");
+                }
+            }
+            s = sb.toString();
+            insertColumnString.put(clazz, s);
         }
         return s;
     }

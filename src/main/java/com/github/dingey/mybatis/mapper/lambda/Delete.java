@@ -1,29 +1,19 @@
 package com.github.dingey.mybatis.mapper.lambda;
 
-import org.apache.ibatis.jdbc.SQL;
-
-/**
- * @author d
- */
 @SuppressWarnings("unused")
-public class Delete<T> extends AbstractStatement<T, Delete<T>> {
-    public Delete() {
-    }
+public class Delete<T> extends AbstractWhere<T, Delete<T>> {
 
-    public Delete(T t) {
-        super(t);
-    }
-
-    public Delete(Class<T> clazz) {
-        super(clazz);
+    public Delete<T> from(Class<T> tClass) {
+        setEntityClass(tClass);
+        return typedThis;
     }
 
     @Override
-    public String toSql() {
-        StringBuilder sql = new StringBuilder("DELETE FROM ");
-        sql.append(table());
-        buildWheres(sql);
-
-        return "<script>" + sql.toString() + "</script>";
+    public StringBuilder toSqlBuilder() {
+        StringBuilder builder = new StringBuilder("DELETE FROM ").append(table());
+        if (whereBuilder.length() > 0) {
+            builder.append(" WHERE ").append(whereBuilder);
+        }
+        return builder;
     }
 }
