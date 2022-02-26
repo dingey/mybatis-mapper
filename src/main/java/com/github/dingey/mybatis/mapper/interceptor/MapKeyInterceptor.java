@@ -9,6 +9,7 @@ import java.sql.Statement;
 import java.util.*;
 
 import com.github.dingey.mybatis.mapper.exception.MapperException;
+import com.github.dingey.mybatis.mapper.utils.ClassUtils;
 import org.apache.ibatis.executor.resultset.ResultSetHandler;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.plugin.Interceptor;
@@ -58,13 +59,7 @@ public class MapKeyInterceptor implements Interceptor {
      * 找到与指定函数名匹配的Method。
      */
     private Method findMethod(String className, String targetMethodName) throws Throwable {
-        Method[] methods = Class.forName(className).getDeclaredMethods();
-        for (Method method : methods) {
-            if (method.getName().equals(targetMethodName)) {
-                return method;
-            }
-        }
-        return null;
+        return ClassUtils.getMethodWithParent(Class.forName(className), targetMethodName);
     }
 
     /**

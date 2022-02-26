@@ -1,55 +1,82 @@
 package com.github.dingey.mybatis.mapper.lambda;
 
-import org.apache.ibatis.jdbc.SQL;
-
-import java.util.HashMap;
-import java.util.Map;
-
-/**
- * @author ding
- * @since 2021/4/19
- */
 @SuppressWarnings("unused")
-public class Update<T> extends AbstractStatement<T, Update<T>> {
+public class Update<T> extends AbstractWhere<T, Update<T>> {
+    private final StringBuilder builder = new StringBuilder();
+    private final StringBuilder setBuilder = new StringBuilder();
+    private final Update<T> instance;
+
     public Update() {
+        this.instance = this;
     }
 
-    public Update(T t) {
-        super(t);
+    public Update<T> update(Class<T> tClass) {
+        setEntityClass(tClass);
+        return instance;
     }
 
-    public Update(Class<T> clazz) {
-        super(clazz);
+    /**
+     * 创建带列可计算的值，支持 + - * /
+     */
+    public ColumnValue<T> val(SFunction<T, ?> col) {
+        return new ColumnValue<>(col, instance.getParamCount(), getParams());
     }
 
-    @Override
-    public String toSql() {
-        StringBuilder sql = new StringBuilder("UPDATE ");
-        sql.append(table());
-        buildSets(sql);
-        buildWheres(sql);
-
-        return "<script>" + sql.toString() + "</script>";
+    public ColumnValue<T> val(Object v) {
+        return new ColumnValue<>(v, instance.getParamCount(), getParams());
     }
 
-    private void buildSets(StringBuilder sql) {
-        if (!setsMap.isEmpty()) {
-            sql.append(" SET ");
-            for (Map.Entry<String, String> set : setsMap.entrySet()) {
-                sql.append(String.format("%s=#{s.params.%s},", set.getKey(), set.getValue()));
-            }
-            sql.deleteCharAt(sql.length() - 1);
+    /**
+     * 设置需要更新的列及值
+     *
+     * @param col   列
+     * @param value 值
+     * @return 自身
+     */
+    public Update<T> set(SFunction<T, ?> col, Object value) {
+        appendSetPrefix();
+
+        Param param = createParam();
+        addParam(param.getName(), value);
+
+        setBuilder.append(column(col)).append("=").append(param.genELExpression());
+        return this;
+    }
+
+    /**
+     * 设置需要更新的列及 带函数的值，如自增等
+     *
+     * @param col   列
+     * @param value 值
+     * @return 自身
+     */
+    public Update<T> set(SFunction<T, ?> col, ColumnValue<T> value) {
+        appendSetPrefix();
+
+        setBuilder.append(column(col)).append("=").append(value.toSqlBuilder());
+        return this;
+    }
+
+    private void appendSetPrefix() {
+        if (setBuilder.length() > 0) {
+            setBuilder.append(",");
         }
     }
 
-    Map<String, String> setsMap = new HashMap<>();
-
-    public Update<T> set(SFunction<T, ?> column, Object val) {
-        String col = column(column);
-        String propName = col + paramCount.get();
-        addParam(propName, val);
-        setsMap.put(col, propName);
-
+    public Update<T> where() {
         return this;
+    }
+
+    @Override
+    public StringBuilder toSqlBuilder() {
+        builder.append("UPDATE ").append(instance.table()).append(" ");
+
+        if (setBuilder.length() > 0) {
+            builder.append("SET ").append(setBuilder);
+        }
+        if (whereBuilder.length() > 0) {
+            builder.append(" WHERE ").append(whereBuilder);
+        }
+        return builder;
     }
 }
