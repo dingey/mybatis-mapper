@@ -5,11 +5,11 @@
 ```
 public interface SomeMapper extends BaseMapper<Some> {
 }
-
+// 支持jpa生成的实体对象，只需配置@Id注解即可调用主键查询方法
 class Some{
   @Id
   Long id;
-  String n;
+  String name;
 }
 ```
 ## 方法一览
@@ -279,15 +279,21 @@ Map<Long, Set<Long>> selectUserRoleIdsSet(Collection<Long> ids);
 ## lambda支持
 提供Select、MysqlSelect、OracleSelect、Insert、Update形式的支持，满足单表的绝大多数操作场景；
 ```
-  new Select<Man>()
+new Select<Man>()
 .select(Man::getId, Man::getName)
 .from(Man.class)
 .eq(Man::getIsDel, 0)
-                .orderBy(Man::getId);
+.orderBy(Man::getId);
 
 new Update<Man>().set(Man::getAge, 1).eq(Man::getId, 1);
 
-new Insert<Man>().values();
+new Insert<Man>()
+.ignore() //生成 insert ignore into table
+.replace() //生成 replace into table
+.values(Arrays.asList(new Some()));// 批量插入
+
+new Insert<Man>().insert(Some::getId,Some::getName).values(1,"a");//单个插入
+
 ```
 
 ## 原理
