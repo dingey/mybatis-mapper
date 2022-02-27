@@ -277,7 +277,7 @@ Map<Long, List<Long>> selectUserRoleIds(Collection<Long> ids);
 Map<Long, Set<Long>> selectUserRoleIdsSet(Collection<Long> ids);
 ```
 ## lambda支持
-提供Select、MysqlSelect、OracleSelect、Insert、Update形式的支持，满足单表的绝大多数操作场景；
+提供Select、MysqlSelect、OracleSelect、Insert、Update形式的支持，满足单表的绝大多数操作场景；MysqlSelect支持mysql的ignore、replace、on duplicate key update、limt等操作;Update支持自增操作。
 ```
 new Select<Man>()
 .select(Man::getId, Man::getName)
