@@ -230,19 +230,40 @@ public interface BaseMapper<T> {
     @SelectProvider(type = SqlProvider.class, method = "listByIds")
     List<T> listByIds(@Param(Const.IDS) Iterable<? extends Serializable> ids);
 
-    // 根据select查询
+    /**
+     * 根据select查询
+     *
+     * @param select select
+     * @return 列表
+     */
     @SelectProvider(type = SqlProvider.class, method = "select")
     List<Map<String, Object>> selectMaps(@Param(Const.PARAM) AbstractSelect<T, ?> select);
 
-    // 根据 select 查询。注意： 只返回第一个字段的值
+    /**
+     * 根据 select 查询。注意： 只返回第一个字段的值
+     *
+     * @param select select
+     * @return 返回第一个字段的值
+     */
     @SelectProvider(type = SqlProvider.class, method = "select")
     List<Object> selectObjs(@Param(Const.PARAM) AbstractSelect<T, ?> select);
 
-    // 根据 select 查询列1、列2并将结果返回为map。注意： 列1为key,列2为value
+    /**
+     * 根据 select 查询列1、列2并将结果返回为map。注意： 列1为key,列2为value
+     *
+     * @param select select
+     * @return 影响的行数
+     */
     @MapKey
     @SelectProvider(type = SqlProvider.class, method = "select")
     Map<Object, Object> selectKVMap(@Param(Const.PARAM) AbstractSelect<T, ?> select);
 
+    /**
+     * 执行插入,支持sql一些特性的插入操作
+     *
+     * @param insert insert
+     * @return 影响的行数
+     */
     @InsertProvider(type = SqlProvider.class, method = "lambda")
     int executeInsert(@Param(Const.PARAM) AbstractInsert<T, ?> insert);
 }
