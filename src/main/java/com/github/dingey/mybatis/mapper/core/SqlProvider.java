@@ -142,8 +142,6 @@ public class SqlProvider {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static void bindEntityClass(AbstractSql statement, ProviderContext context) {
-        if (statement.getEntityClass() == null) {
-            statement.setEntityClass(ProviderContextUtils.entity(context));
-        }
+        statement.setEntityClass(ProviderContextUtils.entity(context));
     }
 }
