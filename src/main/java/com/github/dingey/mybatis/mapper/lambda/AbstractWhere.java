@@ -23,11 +23,11 @@ public abstract class AbstractWhere<T, Self extends AbstractWhere<T, Self>> exte
      */
     public Self eq(boolean condition, SFunction<T, ?> column, Object val) {
         if (!condition) return typedThis;
-        return exp(column, val, "%s = #{%s}");
+        return eq(column, val);
     }
 
     public Self eq(SFunction<T, ?> column, Object val) {
-        return eq(true, column, val);
+        return exp(column, val, "%s = #{%s}");
     }
 
     /**
@@ -40,11 +40,11 @@ public abstract class AbstractWhere<T, Self extends AbstractWhere<T, Self>> exte
      */
     public Self ne(boolean condition, SFunction<T, ?> column, Object val) {
         if (!condition) return typedThis;
-        return exp(column, val, "%s != #{%s}");
+        return ne(column, val);
     }
 
     public Self ne(SFunction<T, ?> column, Object val) {
-        return eq(true, column, val);
+        return exp(column, val, "%s != #{%s}");
     }
 
     /**
@@ -57,7 +57,7 @@ public abstract class AbstractWhere<T, Self extends AbstractWhere<T, Self>> exte
      */
     public Self lt(boolean condition, SFunction<T, ?> column, Object val) {
         if (!condition) return typedThis;
-        return exp(column, val, "%s &lt; #{%s}");
+        return lt(column, val);
     }
 
     public Self lt(SFunction<T, ?> column, Object val) {
@@ -74,7 +74,7 @@ public abstract class AbstractWhere<T, Self extends AbstractWhere<T, Self>> exte
      */
     public Self le(boolean condition, SFunction<T, ?> column, Object val) {
         if (!condition) return typedThis;
-        return exp(column, val, "%s &lt;= #{%s}");
+        return le(column, val);
     }
 
     public Self le(SFunction<T, ?> column, Object val) {
@@ -91,7 +91,7 @@ public abstract class AbstractWhere<T, Self extends AbstractWhere<T, Self>> exte
      */
     public Self gt(boolean condition, SFunction<T, ?> column, Object val) {
         if (!condition) return typedThis;
-        return exp(column, val, "%s &gt; #{%s}");
+        return gt(column, val);
     }
 
     public Self gt(SFunction<T, ?> column, Object val) {
@@ -108,7 +108,7 @@ public abstract class AbstractWhere<T, Self extends AbstractWhere<T, Self>> exte
      */
     public Self ge(boolean condition, SFunction<T, ?> column, Object val) {
         if (!condition) return typedThis;
-        return exp(column, val, "%s &gt;= #{%s}");
+        return ge(column, val);
     }
 
     public Self ge(SFunction<T, ?> column, Object val) {
@@ -124,7 +124,7 @@ public abstract class AbstractWhere<T, Self extends AbstractWhere<T, Self>> exte
      */
     public Self isNull(boolean condition, SFunction<T, ?> column) {
         if (!condition) return typedThis;
-        return exp(column, null, "%s IS NULL");
+        return isNull(column);
     }
 
     public Self isNull(SFunction<T, ?> column) {
@@ -140,7 +140,7 @@ public abstract class AbstractWhere<T, Self extends AbstractWhere<T, Self>> exte
      */
     public Self isNotNull(boolean condition, SFunction<T, ?> column) {
         if (!condition) return typedThis;
-        return exp(column, null, "%s IS NOT NULL");
+        return isNotNull(column);
     }
 
     public Self isNotNull(SFunction<T, ?> column) {
@@ -148,19 +148,24 @@ public abstract class AbstractWhere<T, Self extends AbstractWhere<T, Self>> exte
     }
 
     public Self in(boolean condition, SFunction<T, ?> column, Collection<?> vales) {
+        if (!condition) return typedThis;
+        return in(column, vales);
+    }
+
+    public Self in(SFunction<T, ?> column, Collection<?> vales) {
         if (vales != null && !vales.isEmpty()) {
-            return this.in(condition, column, vales.toArray());
+            return this.in(column, vales.toArray());
         } else {
             throw new MapperException("in值不能为空");
         }
     }
 
-    public Self in(SFunction<T, ?> column, Object... vales) {
-        return in(true, column, vales);
-    }
-
     public Self in(boolean condition, SFunction<T, ?> column, Object... vales) {
         if (!condition) return typedThis;
+        return in(column, vales);
+    }
+
+    public Self in(SFunction<T, ?> column, Object... vales) {
         if (vales != null && vales.length != 0) {
             String name = column(column);
             Param param = createParam();
@@ -188,7 +193,7 @@ public abstract class AbstractWhere<T, Self extends AbstractWhere<T, Self>> exte
      */
     public Self like(boolean condition, SFunction<T, ?> column, Object val) {
         if (!condition) return typedThis;
-        return exp(column, val, "%s LIKE #{%s}");
+        return like(column, val);
     }
 
     /**
@@ -199,19 +204,7 @@ public abstract class AbstractWhere<T, Self extends AbstractWhere<T, Self>> exte
      * @return 自身
      */
     public Self like(SFunction<T, ?> column, Object val) {
-        return like(true, column, val);
-    }
-
-    /**
-     * where条件 col between ? and ?
-     *
-     * @param column 列
-     * @param v1     值1
-     * @param v2     值2
-     * @return 自身
-     */
-    public Self between(SFunction<T, ?> column, Object v1, Object v2) {
-        return between(true, column, v1, v2);
+        return exp(column, val, "%s LIKE #{%s}");
     }
 
     /**
@@ -225,6 +218,18 @@ public abstract class AbstractWhere<T, Self extends AbstractWhere<T, Self>> exte
      */
     public Self between(boolean condition, SFunction<T, ?> column, Object v1, Object v2) {
         if (!condition) return typedThis;
+        return between(column, v1, v2);
+    }
+
+    /**
+     * where条件 col between ? and ?
+     *
+     * @param column 列
+     * @param v1     值1
+     * @param v2     值2
+     * @return 自身
+     */
+    public Self between(SFunction<T, ?> column, Object v1, Object v2) {
         String name = column(column);
         Param param1 = createParam();
         addParam(param1.getName(), v1);

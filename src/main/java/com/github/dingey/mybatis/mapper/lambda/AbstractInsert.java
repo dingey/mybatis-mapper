@@ -114,19 +114,17 @@ public class AbstractInsert<T, Self extends AbstractInsert<T, Self>> extends Abs
         return valueBuilder;
     }
 
-    protected StringBuilder appendColumnBuilder(StringBuilder builder) {
+    protected void appendColumnBuilder(StringBuilder builder) {
         if (columnBuilder.length() > 0) {
             builder.append("(").append(columnBuilder).append(")");
         } else {
             builder.append(JpaUtils.getColumnString(getEntityClass()));
         }
-        return builder;
     }
 
-    protected StringBuilder appendValueBuilder(StringBuilder builder) {
+    protected void appendValueBuilder(StringBuilder builder) {
         if (valueBuilder.length() > 0) {
             builder.append(" VALUES ").append(batch ? "" : "(").append(valueBuilder).append(batch ? "" : ")");
         }
-        return builder;
     }
 }
