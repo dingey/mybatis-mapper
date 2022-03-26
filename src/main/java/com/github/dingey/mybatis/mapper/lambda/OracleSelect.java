@@ -20,10 +20,9 @@ public class OracleSelect<T> extends AbstractSelect<T, OracleSelect<T>> {
         if (rowStart == null) {
             return "<script>" + super.toSql() + "</script>";
         }
-        StringBuilder sql = new StringBuilder("<script>");
-        sql.append("select * from ( select tmp_page.*, rownum row_id from ( ").append(super.toSql());
-        sql.append(" ) tmp_page where rownum &lt;= ").append(rowEnd.genELExpression()).append(" ) where row_id &gt;").append(rowStart.genELExpression());
-        sql.append("</script>");
-        return sql.toString();
+        return "<script>" +
+                "select * from ( select tmp_page.*, rownum row_id from ( " + super.toSql() +
+                " ) tmp_page where rownum &lt;= " + rowEnd.genELExpression() + " ) where row_id &gt;" + rowStart.genELExpression() +
+                "</script>";
     }
 }

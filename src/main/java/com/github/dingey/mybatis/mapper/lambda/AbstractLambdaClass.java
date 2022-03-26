@@ -10,6 +10,7 @@ import java.lang.invoke.SerializedLambda;
  *
  * @param <T> 实体
  */
+@SuppressWarnings({"unchecked"})
 class AbstractLambdaClass<T> extends AbstractParameter {
     private Class<T> entityClass;
 
