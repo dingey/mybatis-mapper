@@ -1,5 +1,7 @@
 package com.github.dingey.mybatis.mapper.lambda;
 
+import com.github.dingey.mybatis.mapper.utils.JpaUtils;
+
 @SuppressWarnings("unused")
 public class AbstractSelect<T, Self extends AbstractSelect<T, Self>> extends AbstractWhere<T, Self> {
     private final StringBuilder columnBuilder = new StringBuilder();
@@ -19,7 +21,7 @@ public class AbstractSelect<T, Self extends AbstractSelect<T, Self>> extends Abs
         if (columnBuilder.length() > 0) {
             builder.append(columnBuilder);
         } else {
-            builder.append("*");
+            builder.append(JpaUtils.getColumnString(getEntityClass()));
         }
         builder.append(" FROM ").append(table());
 

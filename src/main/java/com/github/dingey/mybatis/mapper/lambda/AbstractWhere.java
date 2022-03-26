@@ -1,5 +1,9 @@
 package com.github.dingey.mybatis.mapper.lambda;
 
+import com.github.dingey.mybatis.mapper.exception.MapperException;
+
+import java.util.Collection;
+
 @SuppressWarnings({"unused", "unchecked"})
 public abstract class AbstractWhere<T, Self extends AbstractWhere<T, Self>> extends AbstractSql<T> {
     StringBuilder whereBuilder = new StringBuilder();
@@ -141,6 +145,99 @@ public abstract class AbstractWhere<T, Self extends AbstractWhere<T, Self>> exte
 
     public Self isNotNull(SFunction<T, ?> column) {
         return exp(column, null, "%s IS NOT NULL");
+    }
+
+    public Self in(boolean condition, SFunction<T, ?> column, Collection<?> vales) {
+        if (vales != null && !vales.isEmpty()) {
+            return this.in(condition, column, vales.toArray());
+        } else {
+            throw new MapperException("in值不能为空");
+        }
+    }
+
+    public Self in(SFunction<T, ?> column, Object... vales) {
+        return in(true, column, vales);
+    }
+
+    public Self in(boolean condition, SFunction<T, ?> column, Object... vales) {
+        if (!condition) return typedThis;
+        if (vales != null && vales.length != 0) {
+            String name = column(column);
+            Param param = createParam();
+            addParam(param.getName(), vales);
+
+            String format1 = String.format("<foreach collection=\"%s\" open=\"%s IN (\" separator=\",\" close=\")\" item=\"id\">#{id}</foreach>", param.genExpression(), name);
+
+            if (whereBuilder.length() > 0) {
+                whereBuilder.append(" AND ");
+            }
+            whereBuilder.append(format1);
+            return typedThis;
+        } else {
+            throw new MapperException("in值不能为空");
+        }
+    }
+
+    /**
+     * where条件 col like ?
+     *
+     * @param condition true拼入参数，false忽略条件
+     * @param column    列
+     * @param val       值
+     * @return 自身
+     */
+    public Self like(boolean condition, SFunction<T, ?> column, Object val) {
+        if (!condition) return typedThis;
+        return exp(column, val, "%s LIKE #{%s}");
+    }
+
+    /**
+     * where条件 col like ?
+     *
+     * @param column 列
+     * @param val    值
+     * @return 自身
+     */
+    public Self like(SFunction<T, ?> column, Object val) {
+        return like(true, column, val);
+    }
+
+    /**
+     * where条件 col between ? and ?
+     *
+     * @param column 列
+     * @param v1     值1
+     * @param v2     值2
+     * @return 自身
+     */
+    public Self between(SFunction<T, ?> column, Object v1, Object v2) {
+        return between(true, column, v1, v2);
+    }
+
+    /**
+     * where条件 col between ? and ?
+     *
+     * @param condition true拼入参数，false忽略条件
+     * @param column    列
+     * @param v1        值1
+     * @param v2        值2
+     * @return 自身
+     */
+    public Self between(boolean condition, SFunction<T, ?> column, Object v1, Object v2) {
+        if (!condition) return typedThis;
+        String name = column(column);
+        Param param1 = createParam();
+        addParam(param1.getName(), v1);
+        Param param2 = createParam();
+        addParam(param2.getName(), v2);
+
+        String format1 = String.format("%s BETWEEN #{%s} AND #{%s}", name, param1.genExpression(), param2.genExpression());
+
+        if (whereBuilder.length() > 0) {
+            whereBuilder.append(" AND ");
+        }
+        whereBuilder.append(format1);
+        return typedThis;
     }
 
     protected Self exp(SFunction<T, ?> column, Object val, String format) {
