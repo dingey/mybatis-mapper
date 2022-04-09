@@ -69,7 +69,7 @@ public class Update<T> extends AbstractWhere<T, Update<T>> {
 
     @Override
     public StringBuilder toSqlBuilder() {
-        builder.append("UPDATE ").append(instance.table()).append(" ");
+        builder.append("<script>UPDATE ").append(instance.table()).append(" ");
 
         if (setBuilder.length() > 0) {
             builder.append("SET ").append(setBuilder);
@@ -77,6 +77,6 @@ public class Update<T> extends AbstractWhere<T, Update<T>> {
         if (whereBuilder.length() > 0) {
             builder.append(" WHERE ").append(whereBuilder);
         }
-        return builder;
+        return builder.append("</script>");
     }
 }
