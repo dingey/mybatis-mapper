@@ -10,10 +10,10 @@ public class Delete<T> extends AbstractWhere<T, Delete<T>> {
 
     @Override
     public StringBuilder toSqlBuilder() {
-        StringBuilder builder = new StringBuilder("DELETE FROM ").append(table());
+        StringBuilder builder = new StringBuilder("<script>DELETE FROM ").append(table());
         if (whereBuilder.length() > 0) {
             builder.append(" WHERE ").append(whereBuilder);
         }
-        return builder;
+        return builder.append("</script>");
     }
 }
